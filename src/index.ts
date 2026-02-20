@@ -2,6 +2,8 @@ import { mkdirSync } from "fs";
 import { config } from "./config.js";
 import { startWhatsApp } from "./whatsapp/client.js";
 import { setupMessageHandler } from "./whatsapp/handler.js";
+import { initDatabase } from "./storage/db.js";
+import path from "path";
 
 async function main() {
   try {
@@ -9,9 +11,13 @@ async function main() {
     mkdirSync(config.whatsappAuthDir, { recursive: true });
     mkdirSync(config.downloadsDir, { recursive: true });
 
+    // Inicializar base de datos
+    initDatabase();
+    console.log("✓ Base de datos inicializada");
+
     console.log("Iniciando WhatsApp bot...");
     const sock = await startWhatsApp();
-    
+
     setupMessageHandler(sock);
   } catch (error) {
     console.error("Error iniciando el bot:", error);

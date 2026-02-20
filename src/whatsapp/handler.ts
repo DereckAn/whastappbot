@@ -1,6 +1,8 @@
 import { type WASocket } from "@whiskeysockets/baileys";
 import { config } from "../config.js";
 import { processUrl } from "../downloader/index.js";
+import { isUrlDownloaded, saveDownload } from "../storage/db.js";
+import { identifyPlatform } from "../downloader/parser.js";
 
 const PLATFORM_PATTERNS = {
   twitter: /https?:\/\/(twitter\.com|x\.com|t\.co)\/\S+/i,
@@ -58,10 +60,25 @@ export function setupMessageHandler(sock: WASocket): void {
 
       for (const url of relevantUrls) {
         try {
+          // Verificar si ya fue descargado
+          if (isUrlDownloaded(url)) {
+            console.log(`⏭️  Ya descargado: ${url}`);
+            continue;
+          }
+
           const filePath = await processUrl(url, groupName);
-          console.log(`Archivo descargado: ${filePath}`);
+          console.log(`✅ Archivo descargado: ${filePath}`);
+
+          // Guardar en la base de datos
+          const platform = identifyPlatform(url);
+          saveDownload({
+            url,
+            platform,
+            group_name: groupName,
+            file_path: filePath,
+          });
         } catch (error) {
-          console.error("Error al procesar URL:", error);
+          console.error("❌ Error al procesar URL:", error);
         }
       }
     }
