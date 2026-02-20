@@ -3,6 +3,7 @@ import { config } from "../config.js";
 import { processUrl } from "../downloader/index.js";
 import { isUrlDownloaded, saveDownload } from "../storage/db.js";
 import { identifyPlatform } from "../downloader/parser.js";
+import { uploadToGoogleDrive } from "../storage/gdrive.js";
 
 const PLATFORM_PATTERNS = {
   twitter: /https?:\/\/(twitter\.com|x\.com|t\.co)\/\S+/i,
@@ -66,16 +67,40 @@ export function setupMessageHandler(sock: WASocket): void {
             continue;
           }
 
-          const filePath = await processUrl(url, groupName);
-          console.log(`✅ Archivo descargado: ${filePath}`);
+          const filePaths = await processUrl(url, groupName);
+          console.log(`✅ Archivos descargados (${filePaths.length}):`, filePaths);
 
-          // Guardar en la base de datos
           const platform = identifyPlatform(url);
+
+          // Subir cada archivo a Google Drive y guardar en DB
+          for (const filePath of filePaths) {
+            let gdriveId: string | undefined;
+
+            // Subir a Google Drive si está habilitado
+            if (config.gdriveEnabled) {
+              try {
+                gdriveId = await uploadToGoogleDrive(filePath, groupName, platform);
+              } catch (error) {
+                console.error("❌ Error subiendo a Drive:", error);
+              }
+            }
+
+            // Guardar en la base de datos (cada archivo individual)
+            saveDownload({
+              url: `${url}#${filePath}`, // URL única por archivo
+              platform,
+              group_name: groupName,
+              file_path: filePath,
+              gdrive_id: gdriveId,
+            });
+          }
+
+          // Marcar URL principal como descargada
           saveDownload({
             url,
             platform,
             group_name: groupName,
-            file_path: filePath,
+            file_path: filePaths[0], // primer archivo como referencia
           });
         } catch (error) {
           console.error("❌ Error al procesar URL:", error);

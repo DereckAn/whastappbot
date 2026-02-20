@@ -3,7 +3,7 @@ import { downloadMedia } from "./gallery";
 import { config } from "../config";
 import { mkdirSync } from "fs";
 
-export async function processUrl(url: string, groupName: string): Promise<string> {
+export async function processUrl(url: string, groupName: string): Promise<string[]> {
   const platform = identifyPlatform(url);
   if (platform === "unknown") {
     throw new Error("Unsupported platform");
@@ -15,10 +15,10 @@ export async function processUrl(url: string, groupName: string): Promise<string
   mkdirSync(outputDir, { recursive: true });
   const result = await downloadMedia(url, outputDir, galleryDLPath);
 
-  if (!result.success || !result.filePath) {
+  if (!result.success || !result.filePaths || result.filePaths.length === 0) {
     console.error('❌ gallery-dl error:', result.error);
     throw new Error(result.error || "Failed to download media");
   }
 
-  return result.filePath;
+  return result.filePaths;
 }

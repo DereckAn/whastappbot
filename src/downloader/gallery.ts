@@ -5,7 +5,7 @@ const execFileAsync = promisify(execFile);
 
 export interface DownloadResult {
   success: boolean;
-  filePath?: string;
+  filePaths?: string[];
   error?: string;
 }
 
@@ -24,11 +24,10 @@ export async function downloadMedia(
     console.log('gallery-dl stdout:', stdout);
     console.log('gallery-dl stderr:', stderr);
 
-    // gallery-dl imprime los archivos descargados en stdout
-    const lines = stdout.trim().split("\n").filter(line => line.trim());
-    const filePath = lines[lines.length - 1]; // último archivo descargado
+    // gallery-dl imprime los archivos descargados en stdout (uno por línea)
+    const filePaths = stdout.trim().split("\n").filter(line => line.trim());
 
-    return { success: true, filePath };
+    return { success: true, filePaths };
   } catch (error: any) {
     console.error('gallery-dl failed:', error);
     console.error('gallery-dl stderr:', error.stderr);
