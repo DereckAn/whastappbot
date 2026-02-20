@@ -1,5 +1,6 @@
 import { type WASocket } from "@whiskeysockets/baileys";
 import { config } from "../config.js";
+import { processUrl } from "../downloader/index.js";
 
 const PLATFORM_PATTERNS = {
   twitter: /https?:\/\/(twitter\.com|x\.com|t\.co)\/\S+/i,
@@ -7,7 +8,9 @@ const PLATFORM_PATTERNS = {
 };
 
 export function setupMessageHandler(sock: WASocket): void {
-  sock.ev.on("messages.upsert", async ({ messages }) => {
+  sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    if (type !== "notify") return;
+
     for (const msg of messages) {
       // Solo mensajes de grupos
       if (!msg.key.remoteJid?.endsWith("@g.us")) {
@@ -16,10 +19,10 @@ export function setupMessageHandler(sock: WASocket): void {
 
       // Verificar que el grupo esté monitoreado
       const groupJid = msg.key.remoteJid;
-      try {
-        const groupMetadata = await sock.groupMetadata(groupJid);
-        const groupName = groupMetadata.subject; // ej: "arte"
+      const groupMetadata = await sock.groupMetadata(groupJid);
+      const groupName = groupMetadata.subject; // ej: "arte"
 
+      try {
         if (!config.monitoredGroups.includes(groupName)) continue;
       } catch (error) {
         console.error("Error al obtener metadata del grupo:", error);
@@ -51,6 +54,15 @@ export function setupMessageHandler(sock: WASocket): void {
 
       if (relevantUrls.length > 0) {
         console.log("URLs encontradas:", relevantUrls);
+      }
+
+      for (const url of relevantUrls) {
+        try {
+          const filePath = await processUrl(url, groupName);
+          console.log(`Archivo descargado: ${filePath}`);
+        } catch (error) {
+          console.error("Error al procesar URL:", error);
+        }
       }
     }
   });
