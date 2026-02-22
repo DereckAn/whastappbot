@@ -1,0 +1,11 @@
+node_modules
+data
+.git
+.env
+*.log
+.DS_Store
+README.md
+whatsapp-media-bot-plan.md
+.cursor
+test
+test2

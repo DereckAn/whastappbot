@@ -1,0 +1,16 @@
+services:
+  whatsapp-bot:
+    build: .
+    container_name: whatsapp-media-bot
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+      - ./data/credentials:/data/credentials:ro  # Read-only for security
+      - gallery-dl-config:/root/.config/gallery-dl
+    env_file:
+      - .env
+    stdin_open: true  # Needed for QR code scanning
+    tty: true
+
+volumes:
+  gallery-dl-config:
