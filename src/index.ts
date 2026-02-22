@@ -3,6 +3,7 @@ import { config } from "./config.js";
 import { startWhatsApp } from "./whatsapp/client.js";
 import { setupMessageHandler } from "./whatsapp/handler.js";
 import { initDatabase } from "./storage/db.js";
+import { fetchSecretsIfNeeded } from "./scripts/fetch-secrets.js";
 import path from "path";
 
 async function main() {
@@ -10,6 +11,9 @@ async function main() {
     // Crear directorios necesarios si no existen
     mkdirSync(config.whatsappAuthDir, { recursive: true });
     mkdirSync(config.downloadsDir, { recursive: true });
+
+    // Obtener credenciales desde GitHub si no existen localmente
+    await fetchSecretsIfNeeded();
 
     // Inicializar base de datos
     initDatabase();
