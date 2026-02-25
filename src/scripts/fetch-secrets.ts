@@ -6,10 +6,10 @@ const REPO = "DereckAn/da-proj-secrets";
 
 // Files to fetch: [repoPath, localPath]
 const SECRET_FILES: [string, string][] = [
-  ["cookies/www.instagram.com_cookies.txt", "./data/www.instagram.com_cookies.txt"],
-  ["cookies/x.com_cookies.txt", "./data/x.com_cookies.txt"],
-  ["credentials/oauth-credentials.json", "./data/credentials/oauth-credentials.json"],
-  ["credentials/oauth-token.json", "./data/credentials/oauth-token.json"],
+  ["coockies/www.instagram.com_cookies.txt", "/data/www.instagram.com_cookies.txt"],
+  ["coockies/x.com_cookies.txt", "/data/x.com_cookies.txt"],
+  ["credentials/oauth-credentials.json", "/data/credentials/oauth-credentials.json"],
+  ["credentials/oauth-token.json", "/data/credentials/oauth-token.json"],
 ];
 
 function isGhInstalled(): boolean {
@@ -23,15 +23,21 @@ function isGhAuthenticated(): boolean {
 }
 
 function ghLogin(): void {
-  console.log("\n🌐 Abriendo GitHub en el navegador para autenticarte...");
-  // --web opens a browser-based OAuth flow
-  const result = spawnSync("gh", ["auth", "login", "--hostname", "github.com", "--web"], {
-    stdio: "inherit",
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
+    throw new Error(
+      "No se encontró GITHUB_TOKEN en las variables de entorno.\n" +
+      "Agrega GITHUB_TOKEN=<tu_pat> al archivo .env"
+    );
+  }
+  const result = spawnSync("gh", ["auth", "login", "--with-token"], {
+    input: token,
     encoding: "utf-8",
   });
   if (result.status !== 0) {
-    throw new Error("Falló la autenticación con GitHub.");
+    throw new Error(`Falló la autenticación con GitHub: ${result.stderr}`);
   }
+  console.log("✓ Autenticado con GitHub via token.");
 }
 
 function fetchFile(repoPath: string): string {

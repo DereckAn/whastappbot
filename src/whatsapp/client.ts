@@ -15,6 +15,8 @@ export async function startWhatsApp(): Promise<WASocket> {
     const sock = makeWASocket({
         auth: state,
         version,
+        syncFullHistory: false,
+        shouldSyncHistoryMessage: () => false,
     });
 
     sock.ev.on("creds.update", saveCreds);

@@ -42,4 +42,8 @@ ENV NODE_ENV=production \
 
 VOLUME ["/data"]
 
-CMD ["bun", "run", "src/index.ts"]
+# Entrypoint: limpia sesión de WhatsApp y arranca el bot
+COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

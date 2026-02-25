@@ -12,23 +12,39 @@ const PLATFORM_PATTERNS = {
 
 export function setupMessageHandler(sock: WASocket): void {
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    console.log(`[DEBUG] messages.upsert type="${type}" count=${messages.length}`);
     if (type !== "notify") return;
 
     for (const msg of messages) {
+      // Ignorar mensajes del historial (tienen timestamp muy antiguo)
+      const msgTimestamp = Number(msg.messageTimestamp ?? 0);
+      const fiveMinutesAgo = Math.floor(Date.now() / 1000) - 300;
+      if (msgTimestamp < fiveMinutesAgo) {
+        console.log(`[DEBUG] Mensaje antiguo ignorado (ts=${msgTimestamp})`);
+        continue;
+      }
+
       // Solo mensajes de grupos
       if (!msg.key.remoteJid?.endsWith("@g.us")) {
+        console.log(`[DEBUG] No es grupo, ignorando (jid=${msg.key.remoteJid})`);
         continue;
       }
 
       // Verificar que el grupo esté monitoreado
       const groupJid = msg.key.remoteJid;
-      const groupMetadata = await sock.groupMetadata(groupJid);
-      const groupName = groupMetadata.subject; // ej: "arte"
 
+      let groupName: string;
       try {
-        if (!config.monitoredGroups.includes(groupName)) continue;
+        const groupMetadata = await sock.groupMetadata(groupJid);
+        groupName = groupMetadata.subject;
       } catch (error) {
         console.error("Error al obtener metadata del grupo:", error);
+        continue;
+      }
+
+      console.log(`[DEBUG] Grupo: "${groupName}" | Monitoreados: ${JSON.stringify(config.monitoredGroups)}`);
+      if (!config.monitoredGroups.includes(groupName)) {
+        console.log(`[DEBUG] Grupo "${groupName}" no está monitoreado, ignorando.`);
         continue;
       }
 
@@ -43,9 +59,15 @@ export function setupMessageHandler(sock: WASocket): void {
 
       if (!text) continue;
 
+      console.log(`[DEBUG] Texto recibido: "${text}"`);
+
       // Buscar URLs
       const urls = text.match(/https?:\/\/[^\s]+/g);
-      if (!urls) continue;
+      if (!urls) {
+        console.log("[DEBUG] No se encontraron URLs en el mensaje.");
+        continue;
+      }
+      console.log("[DEBUG] URLs detectadas:", urls);
 
       // Filtrar URLs de Twitter/X e Instagram
       const relevantUrls = urls.filter((url) => {
