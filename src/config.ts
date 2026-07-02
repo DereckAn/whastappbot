@@ -1,4 +1,4 @@
-import 'dotenv/config';
+// Bun autocarga .env; en Docker las vars vienen de env_file en docker-compose
 import { z } from 'zod';
 
 const envSchema = z.object({

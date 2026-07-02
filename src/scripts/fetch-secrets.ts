@@ -50,8 +50,8 @@ function credentialsExist(): boolean {
   return SECRET_FILES.every(([, localPath]) => existsSync(localPath));
 }
 
-export async function fetchSecretsIfNeeded(): Promise<void> {
-  if (credentialsExist()) {
+export async function fetchSecretsIfNeeded(force = false): Promise<void> {
+  if (!force && credentialsExist()) {
     console.log("✓ Credenciales encontradas localmente, omitiendo fetch.");
     return;
   }
@@ -84,4 +84,12 @@ export async function fetchSecretsIfNeeded(): Promise<void> {
   }
 
   console.log("\n✓ Credenciales descargadas.\n");
+}
+
+// Ejecutado directamente (bun run src/scripts/fetch-secrets.ts): fuerza la descarga
+if (import.meta.main) {
+  fetchSecretsIfNeeded(true).catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
 }

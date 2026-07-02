@@ -1,10 +1,8 @@
 import { mkdirSync } from "fs";
 import { config } from "./config.js";
 import { startWhatsApp } from "./whatsapp/client.js";
-import { setupMessageHandler } from "./whatsapp/handler.js";
 import { initDatabase } from "./storage/db.js";
 import { fetchSecretsIfNeeded } from "./scripts/fetch-secrets.js";
-import path from "path";
 
 async function main() {
   try {
@@ -20,9 +18,7 @@ async function main() {
     console.log("✓ Base de datos inicializada");
 
     console.log("Iniciando WhatsApp bot...");
-    const sock = await startWhatsApp();
-
-    setupMessageHandler(sock);
+    await startWhatsApp(); // adjunta el handler internamente
   } catch (error) {
     console.error("Error iniciando el bot:", error);
     process.exit(1);

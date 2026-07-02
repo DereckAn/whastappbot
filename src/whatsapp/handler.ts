@@ -10,6 +10,22 @@ const PLATFORM_PATTERNS = {
   instagram: /https?:\/\/(www\.)?instagram\.com\/(p|reel|stories)\/\S+/i,
 };
 
+// Cache jid -> nombre de grupo para no llamar a groupMetadata en cada mensaje
+const groupNameCache = new Map<string, string>();
+
+async function getGroupName(sock: WASocket, jid: string): Promise<string | null> {
+  const cached = groupNameCache.get(jid);
+  if (cached) return cached;
+  try {
+    const name = (await sock.groupMetadata(jid)).subject;
+    groupNameCache.set(jid, name);
+    return name;
+  } catch (error) {
+    console.error("Error al obtener metadata del grupo:", error);
+    return null;
+  }
+}
+
 export function setupMessageHandler(sock: WASocket): void {
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify") return;
@@ -21,16 +37,8 @@ export function setupMessageHandler(sock: WASocket): void {
       }
 
       // Verificar que el grupo esté monitoreado
-      const groupJid = msg.key.remoteJid;
-      const groupMetadata = await sock.groupMetadata(groupJid);
-      const groupName = groupMetadata.subject; // ej: "arte"
-
-      try {
-        if (!config.monitoredGroups.includes(groupName)) continue;
-      } catch (error) {
-        console.error("Error al obtener metadata del grupo:", error);
-        continue;
-      }
+      const groupName = await getGroupName(sock, msg.key.remoteJid);
+      if (!groupName || !config.monitoredGroups.includes(groupName)) continue;
 
       // Extraer texto del mensaje
       const messageContent = msg.message;
