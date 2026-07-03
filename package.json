@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "bun run src/index.ts",
-    "secrets": "bun run src/scripts/fetch-secrets.ts"
+    "secrets": "bun run src/scripts/fetch-secrets.ts",
+    "cookies": "bun run src/scripts/setup-cookies.ts",
+    "tools": "bun run src/scripts/install-tools.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

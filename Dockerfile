@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y \
     && apt-get update && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
 
-# Install gallery-dl via pip
-RUN pip3 install --break-system-packages gallery-dl
+# Install gallery-dl and yt-dlp via pip (yt-dlp: exportar cookies del navegador)
+RUN pip3 install --break-system-packages gallery-dl yt-dlp
 
 WORKDIR /app
 

@@ -6,8 +6,8 @@ const REPO = "DereckAn/da-proj-secrets";
 
 // Files to fetch: [repoPath, localPath]
 const SECRET_FILES: [string, string][] = [
-  ["cookies/www.instagram.com_cookies.txt", "./data/www.instagram.com_cookies.txt"],
-  ["cookies/x.com_cookies.txt", "./data/x.com_cookies.txt"],
+  ["coockies/www.instagram.com_cookies.txt", "./data/www.instagram.com_cookies.txt"],
+  ["coockies/x.com_cookies.txt", "./data/x.com_cookies.txt"],
   ["credentials/oauth-credentials.json", "./data/credentials/oauth-credentials.json"],
   ["credentials/oauth-token.json", "./data/credentials/oauth-token.json"],
 ];
