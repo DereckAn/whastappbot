@@ -52,20 +52,24 @@ function fromLocalFile(): void {
 }
 
 // Separar un jar Netscape completo en los dos archivos por dominio que espera gallery-dl
-function splitJarByDomain(jarPath: string, igOut = IG_COOKIE, xOut = X_COOKIE): void {
-  const header = "# Netscape HTTP Cookie File\n";
+// Extrae del jar Netscape las líneas de Instagram y de Twitter/X (dominio = columna 0)
+function readJarDomains(jarPath: string): { ig: string[]; x: string[] } {
   const lines = readFileSync(jarPath, "utf-8").split("\n");
   const domainOf = (l: string) => (l.split("\t")[0] || "");
-  const ig = lines.filter((l) => domainOf(l).includes("instagram.com"));
-  const x = lines.filter((l) => domainOf(l).includes("x.com") || domainOf(l).includes("twitter.com"));
+  return {
+    ig: lines.filter((l) => domainOf(l).includes("instagram.com")),
+    x: lines.filter((l) => domainOf(l).includes("x.com") || domainOf(l).includes("twitter.com")),
+  };
+}
 
-  writeFileSync(igOut, header + ig.join("\n") + "\n", "utf-8");
-  writeFileSync(xOut, header + x.join("\n") + "\n", "utf-8");
-  console.log(`  ✓ Instagram (${ig.length} cookies) → ${igOut}`);
-  console.log(`  ✓ Twitter/X (${x.length} cookies) → ${xOut}`);
-  if (ig.length === 0 && x.length === 0) {
-    console.log("  ⚠ No se hallaron cookies de esas redes. ¿Iniciaste sesión en ese navegador?");
+// Escribe el archivo de cookies solo si hay algo; nunca pisa uno bueno con vacío.
+function writeCookieFile(dest: string, lines: string[], label: string): void {
+  if (lines.length === 0) {
+    console.log(`  ⚠ ${label}: 0 cookies → conservo el archivo existente (no lo sobreescribo).`);
+    return;
   }
+  writeFileSync(dest, "# Netscape HTTP Cookie File\n" + lines.join("\n") + "\n", "utf-8");
+  console.log(`  ✓ ${label} (${lines.length} cookies) → ${dest}`);
 }
 
 // ③ Exportar cookies del navegador a archivos .txt (Netscape) con yt-dlp
@@ -85,22 +89,31 @@ function fromBrowser(): void {
   mkdirSync("./data", { recursive: true });
   const fullJar = path.resolve("./data/_browser_cookies.tmp.txt");
 
-  // yt-dlp carga TODAS las cookies del navegador y guarda el jar completo en --cookies.
-  // La URL de youtube solo dispara el volcado; --playlist-items 0 evita descargar nada.
-  const res = spawnSync(
-    ytdlp,
-    ["--cookies-from-browser", browser, "--cookies", fullJar,
-     "--skip-download", "--ignore-errors", "--no-warnings",
-     "--playlist-items", "0", "https://www.youtube.com/"],
-    { encoding: "utf-8" }
-  );
-
-  if (!existsSync(fullJar)) {
-    throw new Error(`yt-dlp no pudo exportar cookies.\n${res.stderr || res.stdout || ""}`);
-  }
-
+  // En Linux la clave de cifrado de Chromium vive en el llavero; probamos varios.
+  // (yt-dlp falla si --cookies apunta a un archivo vacío, por eso borramos antes.)
+  const specs = [browser, `${browser}+gnomekeyring`, `${browser}+kwallet`];
+  let best: { ig: string[]; x: string[] } = { ig: [], x: [] };
   try {
-    splitJarByDomain(fullJar);
+    for (const spec of specs) {
+      rmSync(fullJar, { force: true });
+      spawnSync(ytdlp, ["--cookies-from-browser", spec, "--cookies", fullJar,
+        "--skip-download", "--ignore-errors", "--no-warnings",
+        "--playlist-items", "0", "https://www.youtube.com/"], { encoding: "utf-8" });
+      if (!existsSync(fullJar)) continue;
+      const found = readJarDomains(fullJar);
+      if (found.ig.length + found.x.length > best.ig.length + best.x.length) best = found;
+      if (best.ig.length && best.x.length) break; // ya tenemos ambas redes
+    }
+
+    if (best.ig.length + best.x.length === 0) {
+      throw new Error(
+        "No se hallaron cookies de Instagram/Twitter en el navegador.\n" +
+        "  Verifica que iniciaste sesión en ese navegador y que el llavero (keyring) está desbloqueado."
+      );
+    }
+
+    writeCookieFile(IG_COOKIE, best.ig, "Instagram");
+    writeCookieFile(X_COOKIE, best.x, "Twitter/X");
     writeGalleryConfig(IG_COOKIE, X_COOKIE);
   } finally {
     // El jar completo contiene cookies de TODOS los sitios: borrarlo por seguridad
@@ -131,22 +144,19 @@ function selfTest(): void {
   const dir = path.resolve("./data");
   mkdirSync(dir, { recursive: true });
   const tmp = path.join(dir, "_selftest_jar.txt");
-  const igOut = path.join(dir, "_selftest_ig.txt");
-  const xOut = path.join(dir, "_selftest_x.txt");
   writeFileSync(tmp,
     "# Netscape HTTP Cookie File\n" +
     ".instagram.com\tTRUE\t/\tTRUE\t0\tsessionid\tIG\n" +
     ".x.com\tTRUE\t/\tTRUE\t0\tauth_token\tX\n" +
     ".youtube.com\tTRUE\t/\tTRUE\t0\tPREF\tYT\n", "utf-8");
   try {
-    splitJarByDomain(tmp, igOut, xOut);
-    const ig = readFileSync(igOut, "utf-8");
-    const x = readFileSync(xOut, "utf-8");
-    if (!ig.includes("sessionid") || ig.includes("PREF")) throw new Error("IG split incorrecto");
-    if (!x.includes("auth_token") || x.includes("PREF")) throw new Error("X split incorrecto");
+    const { ig, x } = readJarDomains(tmp);
+    if (ig.length !== 1 || !ig[0]!.includes("sessionid")) throw new Error("IG split incorrecto");
+    if (x.length !== 1 || !x[0]!.includes("auth_token")) throw new Error("X split incorrecto");
+    if (ig.some((l) => l.includes("PREF")) || x.some((l) => l.includes("PREF"))) throw new Error("filtró youtube");
     console.log("✓ selftest OK");
   } finally {
-    for (const f of [tmp, igOut, xOut]) rmSync(f, { force: true });
+    rmSync(tmp, { force: true });
   }
 }
 

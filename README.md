@@ -77,6 +77,15 @@ interactiva (o `bun run cookies` en cualquier momento) aparece este menú:
 - **Opción ③:** cierra el navegador durante la exportación (Brave/Chrome bloquean su
   base de cookies mientras están abiertos). Una vez exportado el `.txt`, puedes volver
   a abrir el navegador — las descargas usan el archivo, no el navegador vivo.
+- **Opción ③ y el llavero (Linux):** los navegadores basados en Chromium (Brave, Chrome)
+  cifran las cookies con una clave guardada en el llavero del sistema. yt-dlp necesita
+  saber cuál usar, así que el script prueba automáticamente `navegador`,
+  `navegador+gnomekeyring` y `navegador+kwallet`, y se queda con el que descifre las
+  cookies. Si ves `Extracted 0 cookies` o `no key found`, asegúrate de que el llavero
+  (gnome-keyring / KWallet) esté **desbloqueado**. Firefox no usa llavero: funciona directo.
+- **Opción ③ nunca borra cookies buenas:** si una red devuelve 0 cookies (ej. no
+  iniciaste sesión ahí), se conserva el archivo existente en vez de sobreescribirlo con
+  uno vacío. Solo se sobreescribe cuando realmente encuentra cookies.
 - El menú solo se muestra con terminal interactiva. En Docker en segundo plano (sin
   TTY) usa la opción ① automáticamente, así el contenedor no se queda esperando input.
 
