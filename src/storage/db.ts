@@ -33,8 +33,6 @@ export function initDatabase() {
   database.run(`CREATE INDEX IF NOT EXISTS idx_url ON downloads (url);`);
 }
 
-export default getDb;
-
 export function isUrlDownloaded(url: string): boolean {
   const database = getDb();
   const stmt = database.prepare("SELECT id FROM downloads WHERE url = ?");
@@ -63,11 +61,4 @@ export function saveDownload(data: {
     data.file_size ?? null,
     data.gdrive_id ?? null,
   );
-}
-
-
-export function closeDatabase() {
-  if (db) {
-    db.close();
-  }
 }

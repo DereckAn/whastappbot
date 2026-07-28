@@ -1,5 +1,6 @@
-import 'dotenv/config';
+// Bun autocarga .env; en Docker las vars vienen de env_file en docker-compose
 import { z } from 'zod';
+import { resolveTool } from './tools.js';
 
 const envSchema = z.object({
   WHATSAPP_AUTH_DIR: z.string(),
@@ -18,7 +19,7 @@ const env = envSchema.parse(process.env);
 export const config = {
   whatsappAuthDir: env.WHATSAPP_AUTH_DIR,
   downloadsDir: env.DOWNLOADS_DIR,
-  galleryDLPath: env.GALLERY_DL_PATH,
+  galleryDLPath: resolveTool(env.GALLERY_DL_PATH),
   monitoredGroups: env.MONITORED_GROUPS.split(',').map((id) => id.trim()).filter(Boolean),
   gdriveEnabled: env.GDRIVE_ENABLED,
   gdriveOAuthCredentialsPath: env.GDRIVE_OAUTH_CREDENTIALS_PATH,

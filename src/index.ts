@@ -1,10 +1,9 @@
 import { mkdirSync } from "fs";
 import { config } from "./config.js";
 import { startWhatsApp } from "./whatsapp/client.js";
-import { setupMessageHandler } from "./whatsapp/handler.js";
 import { initDatabase } from "./storage/db.js";
 import { fetchSecretsIfNeeded } from "./scripts/fetch-secrets.js";
-import path from "path";
+import { runCookieMenu } from "./scripts/setup-cookies.js";
 
 async function main() {
   try {
@@ -12,17 +11,20 @@ async function main() {
     mkdirSync(config.whatsappAuthDir, { recursive: true });
     mkdirSync(config.downloadsDir, { recursive: true });
 
-    // Obtener credenciales desde GitHub si no existen localmente
-    await fetchSecretsIfNeeded();
+    // Terminal interactiva (local): mostrar menú de cookies.
+    // Sin TTY (Docker en background): descarga automática desde el repo.
+    if (process.stdin.isTTY) {
+      await runCookieMenu();
+    } else {
+      await fetchSecretsIfNeeded();
+    }
 
     // Inicializar base de datos
     initDatabase();
     console.log("✓ Base de datos inicializada");
 
     console.log("Iniciando WhatsApp bot...");
-    const sock = await startWhatsApp();
-
-    setupMessageHandler(sock);
+    await startWhatsApp(); // adjunta el handler internamente
   } catch (error) {
     console.error("Error iniciando el bot:", error);
     process.exit(1);

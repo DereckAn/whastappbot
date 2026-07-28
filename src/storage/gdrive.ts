@@ -6,8 +6,12 @@ import path from 'path';
 // Cache de IDs de carpetas para no recrearlas
 const folderCache = new Map<string, string>();
 
-// Autenticación con OAuth
-function getAuthClient() {
+// Cliente Drive cacheado: leer credenciales de disco y construir el OAuth una sola vez
+let driveClient: ReturnType<typeof google.drive> | null = null;
+
+function getDrive() {
+  if (driveClient) return driveClient;
+
   if (!config.gdriveOAuthCredentialsPath || !config.gdriveOAuthTokenPath) {
     throw new Error('GDRIVE_OAUTH_CREDENTIALS_PATH o GDRIVE_OAUTH_TOKEN_PATH no está configurado');
   }
@@ -17,16 +21,15 @@ function getAuthClient() {
 
   const { client_secret, client_id, redirect_uris } = credentials.installed || credentials.web;
   const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-
   oAuth2Client.setCredentials(token);
 
-  return oAuth2Client;
+  driveClient = google.drive({ version: 'v3', auth: oAuth2Client });
+  return driveClient;
 }
 
 // Crear carpeta en Google Drive
 async function createFolder(name: string, parentId: string): Promise<string> {
-  const auth = getAuthClient();
-  const drive = google.drive({ version: 'v3', auth });
+  const drive = getDrive();
 
   const response = await drive.files.create({
     requestBody: {
@@ -42,8 +45,7 @@ async function createFolder(name: string, parentId: string): Promise<string> {
 
 // Buscar carpeta por nombre
 async function findFolder(name: string, parentId: string): Promise<string | null> {
-  const auth = getAuthClient();
-  const drive = google.drive({ version: 'v3', auth });
+  const drive = getDrive();
 
   const response = await drive.files.list({
     q: `name='${name}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
@@ -91,8 +93,7 @@ export async function uploadToGoogleDrive(
     throw new Error('GDRIVE_ROOT_FOLDER_ID no está configurado');
   }
 
-  const auth = getAuthClient();
-  const drive = google.drive({ version: 'v3', auth });
+  const drive = getDrive();
 
   // Crear estructura: RootFolder/GroupName/Platform/
   const groupFolderId = await getOrCreateFolder(groupName, config.gdriveRootFolderId);

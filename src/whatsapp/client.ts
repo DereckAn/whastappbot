@@ -7,6 +7,7 @@ import makeWASocket, {
 import { Boom } from "@hapi/boom";
 import qrcode from "qrcode-terminal";
 import { config } from "../config.js";
+import { setupMessageHandler } from "./handler.js";
 
 export async function startWhatsApp(): Promise<WASocket> {
     const { state, saveCreds } = await useMultiFileAuthState(config.whatsappAuthDir);
@@ -20,6 +21,8 @@ export async function startWhatsApp(): Promise<WASocket> {
     });
 
     sock.ev.on("creds.update", saveCreds);
+    // Adjuntar aquí para que cada socket (incluidas las reconexiones) tenga handler
+    setupMessageHandler(sock);
 
     sock.ev.on("connection.update", (update) => {
         const { connection, lastDisconnect, qr } = update;

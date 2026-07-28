@@ -6,10 +6,10 @@ const REPO = "DereckAn/da-proj-secrets";
 
 // Files to fetch: [repoPath, localPath]
 const SECRET_FILES: [string, string][] = [
-  ["coockies/www.instagram.com_cookies.txt", "/data/www.instagram.com_cookies.txt"],
-  ["coockies/x.com_cookies.txt", "/data/x.com_cookies.txt"],
-  ["credentials/oauth-credentials.json", "/data/credentials/oauth-credentials.json"],
-  ["credentials/oauth-token.json", "/data/credentials/oauth-token.json"],
+  ["coockies/www.instagram.com_cookies.txt", "./data/www.instagram.com_cookies.txt"],
+  ["coockies/x.com_cookies.txt", "./data/x.com_cookies.txt"],
+  ["credentials/oauth-credentials.json", "./data/credentials/oauth-credentials.json"],
+  ["credentials/oauth-token.json", "./data/credentials/oauth-token.json"],
 ];
 
 function isGhInstalled(): boolean {
@@ -56,8 +56,8 @@ function credentialsExist(): boolean {
   return SECRET_FILES.every(([, localPath]) => existsSync(localPath));
 }
 
-export async function fetchSecretsIfNeeded(): Promise<void> {
-  if (credentialsExist()) {
+export async function fetchSecretsIfNeeded(force = false): Promise<void> {
+  if (!force && credentialsExist()) {
     console.log("✓ Credenciales encontradas localmente, omitiendo fetch.");
     return;
   }
@@ -90,4 +90,12 @@ export async function fetchSecretsIfNeeded(): Promise<void> {
   }
 
   console.log("\n✓ Credenciales descargadas.\n");
+}
+
+// Ejecutado directamente (bun run src/scripts/fetch-secrets.ts): fuerza la descarga
+if (import.meta.main) {
+  fetchSecretsIfNeeded(true).catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
 }

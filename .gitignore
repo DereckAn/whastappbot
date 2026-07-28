@@ -45,3 +45,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 *.pdf
 
 data/
+
+# binarios descargados por `bun run tools`
+bin/
