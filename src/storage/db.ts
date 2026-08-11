@@ -50,7 +50,7 @@ export function saveDownload(data: {
 }): void {
   const database = getDb();
   const stmt = database.prepare(`
-  INSERT INTO downloads (url, platform, group_name, file_path, file_size, gdrive_id)
+  INSERT OR IGNORE INTO downloads (url, platform, group_name, file_path, file_size, gdrive_id)
   VALUES (?, ?, ?, ?, ?, ?)
 `);
   stmt.run(
