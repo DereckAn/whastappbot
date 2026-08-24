@@ -4,6 +4,7 @@ import { startWhatsApp } from "./whatsapp/client.js";
 import { initDatabase } from "./storage/db.js";
 import { fetchSecretsIfNeeded } from "./scripts/fetch-secrets.js";
 import { runCookieMenu } from "./scripts/setup-cookies.js";
+import { runDriveMenu } from "./scripts/setup-drive.js";
 
 async function main() {
   try {
@@ -15,6 +16,7 @@ async function main() {
     // Sin TTY (Docker en background): descarga automática desde el repo.
     if (process.stdin.isTTY) {
       await runCookieMenu();
+      await runDriveMenu();
     } else {
       await fetchSecretsIfNeeded();
     }
