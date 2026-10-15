@@ -2,13 +2,8 @@ import { type WASocket } from "@whiskeysockets/baileys";
 import { config } from "../config.js";
 import { processUrl } from "../downloader/index.js";
 import { isUrlDownloaded, saveDownload } from "../storage/db.js";
-import { identifyPlatform } from "../downloader/parser.js";
+import { extractSupportedUrls, identifyPlatform } from "../downloader/parser.js";
 import { uploadToGoogleDrive } from "../storage/gdrive.js";
-
-const PLATFORM_PATTERNS = {
-  twitter: /https?:\/\/(twitter\.com|x\.com|t\.co)\/\S+/i,
-  instagram: /https?:\/\/(www\.)?instagram\.com\/(p|reel|stories)\/\S+/i,
-};
 
 // Cache jid -> nombre de grupo para no llamar a groupMetadata en cada mensaje
 const groupNameCache = new Map<string, string>();
@@ -24,6 +19,51 @@ async function getGroupName(sock: WASocket, jid: string): Promise<string | null>
     console.error("Error al obtener metadata del grupo:", error);
     return null;
   }
+}
+
+// Descarga una URL, la sube a Drive y la registra en la DB. Lanza error si falla la descarga.
+export async function handleUrl(url: string, groupName: string): Promise<"skipped" | "downloaded"> {
+  if (isUrlDownloaded(url)) {
+    console.log(`⏭️  Ya descargado: ${url}`);
+    return "skipped";
+  }
+
+  const filePaths = await processUrl(url, groupName);
+  console.log(`✅ Archivos descargados (${filePaths.length}):`, filePaths);
+
+  const platform = identifyPlatform(url);
+
+  // Subir cada archivo a Google Drive y guardar en DB
+  for (const filePath of filePaths) {
+    let gdriveId: string | undefined;
+
+    // Subir a Google Drive si está habilitado
+    if (config.gdriveEnabled) {
+      try {
+        gdriveId = await uploadToGoogleDrive(filePath, groupName, platform);
+      } catch (error) {
+        console.error("❌ Error subiendo a Drive:", error);
+      }
+    }
+
+    // Guardar en la base de datos (cada archivo individual)
+    saveDownload({
+      url: `${url}#${filePath}`, // URL única por archivo
+      platform,
+      group_name: groupName,
+      file_path: filePath,
+      gdrive_id: gdriveId,
+    });
+  }
+
+  // Marcar URL principal como descargada
+  saveDownload({
+    url,
+    platform,
+    group_name: groupName,
+    file_path: filePaths[0]!, // primer archivo como referencia
+  });
+  return "downloaded";
 }
 
 export function setupMessageHandler(sock: WASocket): void {
@@ -51,9 +91,6 @@ export function setupMessageHandler(sock: WASocket): void {
       if (!groupName || !config.monitoredGroups.includes(groupName)) continue;
 
       // Extraer texto del mensaje
-      const messageContent = msg.message;
-      if (!messageContent) continue;
-
       const text =
         msg.message?.conversation ??
         msg.message?.extendedTextMessage?.text ??
@@ -63,69 +100,17 @@ export function setupMessageHandler(sock: WASocket): void {
 
       console.log(`[DEBUG] Texto recibido: "${text}"`);
 
-      // Buscar URLs
-      const urls = text.match(/https?:\/\/[^\s]+/g);
-      if (!urls) {
-        console.log("[DEBUG] No se encontraron URLs en el mensaje.");
+      // Buscar URLs de Twitter/X e Instagram
+      const relevantUrls = extractSupportedUrls(text);
+      if (relevantUrls.length === 0) {
+        console.log("[DEBUG] No se encontraron URLs soportadas en el mensaje.");
         continue;
       }
-      console.log("[DEBUG] URLs detectadas:", urls);
-
-      // Filtrar URLs de Twitter/X e Instagram
-      const relevantUrls = urls.filter((url) => {
-        return (
-          PLATFORM_PATTERNS.twitter.test(url) ||
-          PLATFORM_PATTERNS.instagram.test(url)
-        );
-      });
-
-      if (relevantUrls.length > 0) {
-        console.log("URLs encontradas:", relevantUrls);
-      }
+      console.log("URLs encontradas:", relevantUrls);
 
       for (const url of relevantUrls) {
         try {
-          // Verificar si ya fue descargado
-          if (isUrlDownloaded(url)) {
-            console.log(`⏭️  Ya descargado: ${url}`);
-            continue;
-          }
-
-          const filePaths = await processUrl(url, groupName);
-          console.log(`✅ Archivos descargados (${filePaths.length}):`, filePaths);
-
-          const platform = identifyPlatform(url);
-
-          // Subir cada archivo a Google Drive y guardar en DB
-          for (const filePath of filePaths) {
-            let gdriveId: string | undefined;
-
-            // Subir a Google Drive si está habilitado
-            if (config.gdriveEnabled) {
-              try {
-                gdriveId = await uploadToGoogleDrive(filePath, groupName, platform);
-              } catch (error) {
-                console.error("❌ Error subiendo a Drive:", error);
-              }
-            }
-
-            // Guardar en la base de datos (cada archivo individual)
-            saveDownload({
-              url: `${url}#${filePath}`, // URL única por archivo
-              platform,
-              group_name: groupName,
-              file_path: filePath,
-              gdrive_id: gdriveId,
-            });
-          }
-
-          // Marcar URL principal como descargada
-          saveDownload({
-            url,
-            platform,
-            group_name: groupName,
-            file_path: filePaths[0], // primer archivo como referencia
-          });
+          await handleUrl(url, groupName);
         } catch (error) {
           console.error("❌ Error al procesar URL:", error);
         }
