@@ -49,6 +49,18 @@
     dt { color: var(--muted); } dd { margin: 0; overflow-wrap: anywhere; }
     a { color: var(--accent); }
     .empty { color: var(--muted); padding: 24px 0; text-align: center; }
+    .setup { max-width: 640px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+    .setup p { margin: 0 0 10px; }
+    details { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+    details[open] summary { margin-bottom: 10px; }
+    summary { cursor: pointer; font-weight: 600; }
+    label.file { display: block; margin-bottom: 8px; }
+    button.action, select { padding: 7px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; cursor: pointer; }
+    button.primary { padding: 10px 18px; border: 0; border-radius: 8px; background: var(--accent); color: var(--bg); font: inherit; font-weight: 600; cursor: pointer; justify-self: start; }
+    button:disabled { opacity: .5; cursor: wait; }
+    .msg-ok { color: var(--ok); } .msg-bad { color: var(--bad); white-space: pre-wrap; }
+    .qr { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 16px; }
+    .qr img { width: 240px; height: 240px; border-radius: 8px; background: #fff; }
     [hidden] { display: none !important; }
     @media (max-width: 700px) {
       .layout { grid-template-columns: 1fr; }
@@ -67,12 +79,53 @@
     <span class="pill" id="uptime">…</span>
   </header>
 
-  <div class="layout">
+  <section id="setup" class="setup" hidden>
+    <div class="panel">
+      <h2>1 · Cookies de Instagram y Twitter/X</h2>
+      <p id="cookie-state" class="muted"></p>
+      <details name="cookies">
+        <summary>Descargar del repo privado</summary>
+        <button class="action" id="cookies-repo">Descargar</button>
+      </details>
+      <details name="cookies">
+        <summary>Subir archivos cookies.txt</summary>
+        <form id="cookies-upload">
+          <label class="file">Instagram <input type="file" name="ig" accept=".txt" /></label>
+          <label class="file">Twitter/X <input type="file" name="x" accept=".txt" /></label>
+          <button class="action">Subir</button>
+        </form>
+      </details>
+      <details name="cookies">
+        <summary>Exportar de un navegador (con sesión iniciada)</summary>
+        <p class="muted">Si falla, cierra ese navegador, abre esta página en otro y vuelve a intentar.</p>
+        <select id="browser"></select>
+        <button class="action" id="cookies-browser">Exportar</button>
+      </details>
+      <p id="cookie-msg"></p>
+    </div>
+
+    <div class="panel">
+      <h2>2 · Google Drive</h2>
+      <label id="drive-option"><input type="checkbox" id="drive-check" /> Subir a Google Drive esta sesión</label>
+      <p id="drive-off" class="muted" hidden>Drive está apagado en <code>.env</code> (GDRIVE_ENABLED).</p>
+    </div>
+
+    <button class="primary" id="start">Iniciar bot</button>
+  </section>
+
+  <div class="layout" id="dashboard" hidden>
     <aside class="panel">
       <nav id="groups"><h2>Grupos</h2></nav>
     </aside>
 
     <main>
+      <section id="qr-panel" class="panel qr" hidden>
+        <img id="qr-img" alt="Código QR de WhatsApp" />
+        <div>
+          <h2>Vincula WhatsApp</h2>
+          <p>En tu teléfono: WhatsApp → Dispositivos vinculados → Vincular dispositivo, y escanea el código.</p>
+        </div>
+      </section>
       <div class="tabs" role="tablist">
         <button role="tab" data-tab="gallery" aria-selected="true">Galería</button>
         <button role="tab" data-tab="activity">Actividad <span id="active-count"></span></button>
@@ -98,6 +151,8 @@
   <script>
     let selectedGroup = null;
     let lastEventAt; // undefined: fuerza la primera carga de la galería
+    let lastQrVersion = null;
+    let setupRendered = false;
 
     // Construye nodos con textContent: los textos vienen de mensajes de WhatsApp
     function h(tag, props = {}, ...children) {
@@ -124,8 +179,79 @@
       return res.json();
     }
 
+    async function post(url, body) {
+      const init = body instanceof FormData
+        ? { method: "POST", body }
+        : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) };
+      const res = await fetch(url, init);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      return data;
+    }
+
+    function cookieState(st) {
+      const yes = (b) => (b ? "✅" : "❌");
+      return "Actuales: Instagram " + yes(st.instagramCookies) + " · Twitter/X " + yes(st.twitterCookies) + ". Si ya funcionan, puedes saltar este paso.";
+    }
+
+    // Ejecuta un paso de configuración con los botones bloqueados y muestra el resultado
+    async function runStep(okText, request) {
+      const msg = document.getElementById("cookie-msg");
+      const buttons = document.querySelectorAll("#setup button");
+      buttons.forEach((b) => (b.disabled = true));
+      msg.className = "muted";
+      msg.textContent = "Trabajando…";
+      try {
+        await request();
+        msg.className = "msg-ok";
+        msg.textContent = okText;
+        document.getElementById("cookie-state").textContent = cookieState((await getJSON("/api/status")).settings);
+      } catch (e) {
+        msg.className = "msg-bad";
+        msg.textContent = e.message;
+      } finally {
+        buttons.forEach((b) => (b.disabled = false));
+      }
+    }
+
+    function renderSetup(st) {
+      if (setupRendered) return;
+      setupRendered = true;
+      document.getElementById("cookie-state").textContent = cookieState(st);
+      document.getElementById("browser").replaceChildren(...st.browsers.map((b) => h("option", { value: b }, b)));
+      document.getElementById("drive-option").hidden = !st.gdriveConfigured;
+      document.getElementById("drive-off").hidden = st.gdriveConfigured;
+      document.getElementById("drive-check").checked = st.gdriveConfigured;
+    }
+
+    document.getElementById("cookies-repo").addEventListener("click", () =>
+      runStep("✓ Cookies descargadas del repo", () => post("/api/setup/cookies/repo")));
+    document.getElementById("cookies-browser").addEventListener("click", () =>
+      runStep("✓ Cookies exportadas del navegador", () => post("/api/setup/cookies/browser", { browser: document.getElementById("browser").value })));
+    document.getElementById("cookies-upload").addEventListener("submit", (e) => {
+      e.preventDefault();
+      runStep("✓ Archivos guardados", () => post("/api/setup/cookies/upload", new FormData(e.target)));
+    });
+    document.getElementById("start").addEventListener("click", async () => {
+      try {
+        await post("/api/setup/start", { drive: document.getElementById("drive-check").checked });
+        refresh();
+      } catch (e) {
+        alert(e.message);
+      }
+    });
+
     function renderStatus(s) {
-      const conn = { open: ["Conectado", "ok"], connecting: ["Conectando…", "warn"], qr: ["Esperando QR", "warn"], close: ["Desconectado", "bad"] }[s.connection];
+      const inSetup = s.phase === "setup";
+      document.getElementById("setup").hidden = !inSetup;
+      document.getElementById("dashboard").hidden = inSetup;
+      if (inSetup) renderSetup(s.settings);
+
+      document.getElementById("qr-panel").hidden = s.qrVersion === null;
+      if (s.qrVersion !== null && s.qrVersion !== lastQrVersion) document.getElementById("qr-img").src = "/api/qr?v=" + s.qrVersion;
+      lastQrVersion = s.qrVersion;
+
+      const conn = inSetup ? ["Configurando", "warn"] : { open: ["Conectado", "ok"], connecting: ["Conectando…", "warn"], qr: ["Esperando QR", "warn"], close: ["Desconectado", "bad"] }[s.connection];
       document.getElementById("conn").textContent = conn[0];
       document.getElementById("conn-dot").className = "dot " + conn[1];
       document.getElementById("drive").textContent = "Drive: " + (s.settings.gdriveEnabled ? "activo" : "apagado");

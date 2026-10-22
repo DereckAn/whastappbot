@@ -28,9 +28,12 @@ export async function startWhatsApp(): Promise<WASocket> {
     sock.ev.on("connection.update", (update) => {
         const { connection, lastDisconnect, qr } = update;
         if (connection) botState.connection = connection;
+        if (connection === "open") botState.qr = null;
 
         if (qr) {
             botState.connection = "qr";
+            botState.qr = qr;
+            botState.qrVersion++;
             console.log("Escanea este QR con WhatsApp:");
             qrcode.generate(qr, { small: true });
         }

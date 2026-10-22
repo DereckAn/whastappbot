@@ -22,7 +22,7 @@ function writeGalleryConfig(instagram: string | string[], twitter: string | stri
 }
 
 // ① Descargar cookies desde el repo privado
-async function fromRepo(): Promise<void> {
+export async function fromRepo(): Promise<void> {
   await fetchSecretsIfNeeded(true);
   if (!existsSync(IG_COOKIE) || !existsSync(X_COOKIE)) {
     throw new Error("El repo no entregó los archivos de cookies esperados.");
@@ -51,6 +51,18 @@ function fromLocalFile(): void {
   writeGalleryConfig(IG_COOKIE, X_COOKIE);
 }
 
+// ② (UI) Guardar archivos de cookies subidos desde el navegador
+export function saveUploadedCookies(ig: string | null, x: string | null): void {
+  // Formato Netscape: líneas separadas por tabs
+  const looksValid = (text: string) => text.includes("\t");
+  if (!ig && !x) throw new Error("No se subió ningún archivo.");
+  if ((ig && !looksValid(ig)) || (x && !looksValid(x))) throw new Error("El archivo no parece un cookies.txt (formato Netscape).");
+  mkdirSync("./data", { recursive: true });
+  if (ig) writeFileSync(IG_COOKIE, ig, "utf-8"), console.log(`  ✓ Instagram → ${IG_COOKIE}`);
+  if (x) writeFileSync(X_COOKIE, x, "utf-8"), console.log(`  ✓ Twitter/X → ${X_COOKIE}`);
+  writeGalleryConfig(IG_COOKIE, X_COOKIE);
+}
+
 // Separar un jar Netscape completo en los dos archivos por dominio que espera gallery-dl
 // Extrae del jar Netscape las líneas de Instagram y de Twitter/X (dominio = columna 0)
 function readJarDomains(jarPath: string): { ig: string[]; x: string[] } {
@@ -73,7 +85,7 @@ function writeCookieFile(dest: string, lines: string[], label: string): void {
 }
 
 // ③ Exportar cookies del navegador a archivos .txt (Netscape) con yt-dlp
-function fromBrowser(): void {
+function requireYtdlp(): string {
   const ytdlp = resolveTool("yt-dlp");
   if (spawnSync(ytdlp, ["--version"]).status !== 0) {
     throw new Error(
@@ -81,10 +93,23 @@ function fromBrowser(): void {
       "  Descárgalo con:  bun run tools   (o: pip install --user yt-dlp)"
     );
   }
+  return ytdlp;
+}
 
+function fromBrowser(): void {
+  requireYtdlp(); // antes de pedir que cierre el navegador
   const browser = (prompt("¿Qué navegador? (brave/firefox/chrome/chromium) [brave]:") || "brave").trim().toLowerCase();
   console.log(`\n⚠️  Cierra ${browser} durante la exportación: bloquea la base de cookies mientras está abierto.`);
   prompt("Presiona enter cuando esté cerrado…");
+  exportBrowserCookies(browser);
+}
+
+export const BROWSERS = ["brave", "firefox", "chrome", "chromium"];
+
+// ponytail: síncrono (spawnSync); en modo UI bloquea el servidor unos segundos mientras exporta
+export function exportBrowserCookies(browser: string): void {
+  if (!BROWSERS.includes(browser)) throw new Error(`Navegador no soportado: ${browser}`);
+  const ytdlp = requireYtdlp();
 
   mkdirSync("./data", { recursive: true });
   const fullJar = path.resolve("./data/_browser_cookies.tmp.txt");
