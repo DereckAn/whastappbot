@@ -62,3 +62,32 @@ export function saveDownload(data: {
     data.gdrive_id ?? null,
   );
 }
+
+// Filas por archivo (url contiene "#"); las filas sin "#" solo marcan el link como descargado
+export interface DownloadRow {
+  url: string;
+  platform: string;
+  group_name: string;
+  file_path: string;
+  gdrive_id: string | null;
+  downloaded_at: string;
+}
+
+export function listDownloads(group: string | null, limit: number): DownloadRow[] {
+  return getDb()
+    .prepare(`
+  SELECT url, platform, group_name, file_path, gdrive_id, downloaded_at FROM downloads
+  WHERE url LIKE '%#%' AND (?1 IS NULL OR group_name = ?1)
+  ORDER BY id DESC LIMIT ?2
+`)
+    .all(group, limit) as DownloadRow[];
+}
+
+export function groupStats(): { group_name: string; files: number; last: string }[] {
+  return getDb()
+    .prepare(`
+  SELECT group_name, COUNT(*) AS files, MAX(downloaded_at) AS last FROM downloads
+  WHERE url LIKE '%#%' GROUP BY group_name
+`)
+    .all() as { group_name: string; files: number; last: string }[];
+}

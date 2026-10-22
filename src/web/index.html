@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Media Bot</title>
+  <style>
+    :root {
+      --bg: #f6f6f4; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e4e4df;
+      --accent: #2f6f4f; --ok: #2f7d4f; --warn: #b07a12; --bad: #b3372f;
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #141413; --panel: #1e1e1c; --text: #ececea; --muted: #9a9a94; --line: #2e2e2b;
+        --accent: #6fbf8f; --ok: #6fbf8f; --warn: #e0b04a; --bad: #e7756b;
+        color-scheme: dark;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, sans-serif; }
+    header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    h1 { font-size: 16px; margin: 0 auto 0 0; }
+    h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+    .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); }
+    .layout { display: grid; grid-template-columns: 220px 1fr; gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+    nav button { display: flex; justify-content: space-between; width: 100%; padding: 8px 10px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+    nav button:hover { background: var(--bg); }
+    nav button[aria-current="true"] { background: var(--bg); color: var(--accent); font-weight: 600; }
+    nav small { color: var(--muted); font-weight: 400; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+    .tabs button { padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--muted); font: inherit; cursor: pointer; }
+    .tabs button[aria-selected="true"] { color: var(--text); border-color: var(--accent); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .card { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 8px; background: var(--line); }
+    .card img, .card video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .card .meta { position: absolute; inset: auto 0 0 0; display: flex; gap: 8px; padding: 6px 8px; font-size: 12px; background: linear-gradient(transparent, rgba(0,0,0,.7)); color: #fff; }
+    .card .meta a { color: #fff; }
+    ul.list { list-style: none; margin: 0; padding: 0; }
+    ul.list li { display: grid; grid-template-columns: 20px 1fr auto; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    ul.list li:last-child { border-bottom: 0; }
+    .url { overflow-wrap: anywhere; }
+    .muted { color: var(--muted); }
+    .err { color: var(--bad); font-size: 12px; overflow-wrap: anywhere; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; }
+    dt { color: var(--muted); } dd { margin: 0; overflow-wrap: anywhere; }
+    a { color: var(--accent); }
+    .empty { color: var(--muted); padding: 24px 0; text-align: center; }
+    [hidden] { display: none !important; }
+    @media (max-width: 700px) {
+      .layout { grid-template-columns: 1fr; }
+      nav { display: flex; gap: 6px; overflow-x: auto; }
+      nav h2 { display: none; }
+      nav button { width: auto; white-space: nowrap; gap: 6px; }
+      .grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>WhatsApp Media Bot</h1>
+    <span class="pill"><span id="conn-dot" class="dot"></span><span id="conn">…</span></span>
+    <span class="pill" id="drive">Drive: …</span>
+    <span class="pill" id="uptime">…</span>
+  </header>
+
+  <div class="layout">
+    <aside class="panel">
+      <nav id="groups"><h2>Grupos</h2></nav>
+    </aside>
+
+    <main>
+      <div class="tabs" role="tablist">
+        <button role="tab" data-tab="gallery" aria-selected="true">Galería</button>
+        <button role="tab" data-tab="activity">Actividad <span id="active-count"></span></button>
+        <button role="tab" data-tab="settings">Ajustes</button>
+      </div>
+
+      <section id="gallery" class="panel"><div class="grid" id="grid"></div></section>
+
+      <section id="activity" class="panel" hidden>
+        <h2>Descargando ahora</h2>
+        <ul class="list" id="active"></ul>
+        <h2 style="margin-top:18px">Recientes</h2>
+        <ul class="list" id="events"></ul>
+      </section>
+
+      <section id="settings" class="panel" hidden>
+        <dl id="settings-list"></dl>
+        <p class="muted">Para cambiar ajustes edita <code>.env</code> y reinicia el bot.</p>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    let selectedGroup = null;
+    let lastEventAt; // undefined: fuerza la primera carga de la galería
+
+    // Construye nodos con textContent: los textos vienen de mensajes de WhatsApp
+    function h(tag, props = {}, ...children) {
+      const el = document.createElement(tag);
+      for (const [k, v] of Object.entries(props)) {
+        if (k === "class") el.className = v; else if (k.startsWith("on")) el.addEventListener(k.slice(2), v); else el.setAttribute(k, v);
+      }
+      el.append(...children.filter((c) => c != null));
+      return el;
+    }
+    const safeHref = (url) => (/^https?:\/\//.test(url) ? url : "#");
+    const parseDate = (s) => new Date(s.includes("T") ? s : s.replace(" ", "T") + "Z"); // SQLite guarda UTC
+    function ago(s) {
+      const sec = Math.round((Date.now() - parseDate(s)) / 1000);
+      if (sec < 60) return "hace " + sec + "s";
+      if (sec < 3600) return "hace " + Math.round(sec / 60) + " min";
+      if (sec < 86400) return "hace " + Math.round(sec / 3600) + " h";
+      return "hace " + Math.round(sec / 86400) + " d";
+    }
+
+    async function getJSON(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(url + " → " + res.status);
+      return res.json();
+    }
+
+    function renderStatus(s) {
+      const conn = { open: ["Conectado", "ok"], connecting: ["Conectando…", "warn"], qr: ["Esperando QR", "warn"], close: ["Desconectado", "bad"] }[s.connection];
+      document.getElementById("conn").textContent = conn[0];
+      document.getElementById("conn-dot").className = "dot " + conn[1];
+      document.getElementById("drive").textContent = "Drive: " + (s.settings.gdriveEnabled ? "activo" : "apagado");
+      document.getElementById("uptime").textContent = "Activo desde " + ago(s.startedAt).replace("hace ", "");
+
+      const total = s.groups.reduce((n, g) => n + g.files, 0);
+      const nav = document.getElementById("groups");
+      nav.replaceChildren(h("h2", {}, "Grupos"),
+        ...[{ name: null, label: "Todos", files: total }, ...s.groups.map((g) => ({ ...g, label: g.name }))].map((g) =>
+          h("button", { "aria-current": String(g.name === selectedGroup), title: g.last ? "Último: " + ago(g.last) : "Sin descargas", onclick: () => selectGroup(g.name) },
+            h("span", {}, g.label), h("small", {}, String(g.files)))));
+
+      const st = s.settings;
+      const yes = (b) => (b ? "✅ encontrado" : "❌ falta");
+      document.getElementById("settings-list").replaceChildren(...[
+        ["Grupos monitoreados", st.monitoredGroups.join(", ") || "—"],
+        ["Carpeta de descargas", st.downloadsDir],
+        ["gallery-dl", st.galleryDLPath],
+        ["Google Drive", st.gdriveEnabled ? "activo" : "apagado"],
+        ["Cookies Instagram", yes(st.instagramCookies)],
+        ["Cookies Twitter/X", yes(st.twitterCookies)],
+        ["Nivel de log", st.logLevel],
+      ].flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)]));
+    }
+
+    function renderActivity(a) {
+      document.getElementById("active-count").textContent = a.active.length ? "(" + a.active.length + ")" : "";
+      const active = document.getElementById("active");
+      active.replaceChildren(...(a.active.length
+        ? a.active.map((x) => h("li", {}, h("span", {}, "⏳"), h("a", { class: "url", href: safeHref(x.url), target: "_blank", rel: "noreferrer" }, x.url), h("span", { class: "muted" }, x.group)))
+        : [h("li", { class: "muted" }, h("span"), "Nada en curso")]));
+
+      const icon = { downloaded: "✅", skipped: "⏭️", failed: "❌" };
+      document.getElementById("events").replaceChildren(...(a.events.length
+        ? a.events.map((e) => h("li", {}, h("span", {}, icon[e.result]),
+            h("div", {}, h("a", { class: "url", href: safeHref(e.url), target: "_blank", rel: "noreferrer" }, e.url), e.error ? h("div", { class: "err" }, e.error) : null),
+            h("span", { class: "muted" }, e.group + " · " + ago(e.at))))
+        : [h("li", { class: "muted" }, h("span"), "Sin actividad desde que arrancó el bot")]));
+
+      // Recargar galería cuando hay un evento nuevo
+      const newest = a.events[0]?.at ?? null;
+      if (newest !== lastEventAt) { lastEventAt = newest; loadGallery(); }
+    }
+
+    async function loadGallery() {
+      const q = selectedGroup ? "?group=" + encodeURIComponent(selectedGroup) : "";
+      const rows = await getJSON("/api/downloads" + q);
+      const grid = document.getElementById("grid");
+      if (!rows.length) return grid.replaceChildren(h("div", { class: "empty" }, "Todavía no hay descargas"));
+      grid.replaceChildren(...rows.map((r) => {
+        const src = "/media?path=" + encodeURIComponent(r.file_path);
+        const media = /\.(mp4|webm|mov|m4v)$/i.test(r.file_path)
+          ? h("video", { src, preload: "metadata", controls: "", muted: "" })
+          : h("a", { href: src, target: "_blank" }, h("img", { src, loading: "lazy", alt: r.group_name }));
+        const post = r.url.split("#")[0];
+        return h("div", { class: "card", title: r.group_name + " · " + ago(r.downloaded_at) }, media,
+          h("div", { class: "meta" },
+            h("a", { href: safeHref(post), target: "_blank", rel: "noreferrer" }, r.platform === "twitter" ? "X" : "IG"),
+            r.gdrive_id ? h("a", { href: "https://drive.google.com/file/d/" + encodeURIComponent(r.gdrive_id) + "/view", target: "_blank", rel: "noreferrer" }, "Drive") : null,
+            h("span", {}, ago(r.downloaded_at))));
+      }));
+    }
+
+    function selectGroup(name) {
+      selectedGroup = name;
+      refresh();
+      loadGallery();
+      showTab("gallery");
+    }
+
+    function showTab(tab) {
+      document.querySelectorAll("[role=tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+      for (const id of ["gallery", "activity", "settings"]) document.getElementById(id).hidden = id !== tab;
+    }
+    document.querySelectorAll("[role=tab]").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+    async function refresh() {
+      try {
+        const [s, a] = await Promise.all([getJSON("/api/status"), getJSON("/api/activity")]);
+        renderStatus(s);
+        renderActivity(a);
+      } catch (e) {
+        document.getElementById("conn").textContent = "Bot sin respuesta";
+        document.getElementById("conn-dot").className = "dot bad";
+      }
+    }
+    refresh();
+    setInterval(refresh, 3000);
+  </script>
+</body>
+</html>

@@ -12,6 +12,8 @@ const envSchema = z.object({
   GDRIVE_OAUTH_TOKEN_PATH: z.string().optional(),
   GDRIVE_ROOT_FOLDER_ID: z.string().optional(),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+  UI_PORT: z.coerce.number().default(3000),
+  UI_HOST: z.string().default('127.0.0.1'),
 });
 
 const env = envSchema.parse(process.env);
@@ -26,4 +28,6 @@ export const config = {
   gdriveOAuthTokenPath: env.GDRIVE_OAUTH_TOKEN_PATH,
   gdriveRootFolderId: env.GDRIVE_ROOT_FOLDER_ID,
   logLevel: env.LOG_LEVEL,
+  uiPort: env.UI_PORT,
+  uiHost: env.UI_HOST,
 };

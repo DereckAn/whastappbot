@@ -4,6 +4,7 @@ import { processUrl } from "../downloader/index.js";
 import { isUrlDownloaded, saveDownload } from "../storage/db.js";
 import { extractSupportedUrls, identifyPlatform } from "../downloader/parser.js";
 import { uploadToGoogleDrive } from "../storage/gdrive.js";
+import { botState, logEvent } from "../web/state.js";
 
 // Cache jid -> nombre de grupo para no llamar a groupMetadata en cada mensaje
 const groupNameCache = new Map<string, string>();
@@ -23,6 +24,20 @@ async function getGroupName(sock: WASocket, jid: string): Promise<string | null>
 
 // Descarga una URL, la sube a Drive y la registra en la DB. Lanza error si falla la descarga.
 export async function handleUrl(url: string, groupName: string): Promise<"skipped" | "downloaded"> {
+  botState.active.set(url, groupName);
+  try {
+    const result = await downloadAndSave(url, groupName);
+    logEvent({ url, group: groupName, result });
+    return result;
+  } catch (error) {
+    logEvent({ url, group: groupName, result: "failed", error: String(error) });
+    throw error;
+  } finally {
+    botState.active.delete(url);
+  }
+}
+
+async function downloadAndSave(url: string, groupName: string): Promise<"skipped" | "downloaded"> {
   if (isUrlDownloaded(url)) {
     console.log(`⏭️  Ya descargado: ${url}`);
     return "skipped";

@@ -8,6 +8,7 @@ import { Boom } from "@hapi/boom";
 import qrcode from "qrcode-terminal";
 import { config } from "../config.js";
 import { setupMessageHandler } from "./handler.js";
+import { botState } from "../web/state.js";
 
 export async function startWhatsApp(): Promise<WASocket> {
     const { state, saveCreds } = await useMultiFileAuthState(config.whatsappAuthDir);
@@ -26,8 +27,10 @@ export async function startWhatsApp(): Promise<WASocket> {
 
     sock.ev.on("connection.update", (update) => {
         const { connection, lastDisconnect, qr } = update;
+        if (connection) botState.connection = connection;
 
         if (qr) {
+            botState.connection = "qr";
             console.log("Escanea este QR con WhatsApp:");
             qrcode.generate(qr, { small: true });
         }

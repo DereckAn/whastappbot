@@ -8,8 +8,8 @@ import { resolveTool } from "../tools.js";
 // prompt() es un global de Bun; tsconfig usa lib ESNext (sin DOM) así que lo declaramos
 declare const prompt: (message?: string) => string | null;
 
-const IG_COOKIE = path.resolve("./data/www.instagram.com_cookies.txt");
-const X_COOKIE = path.resolve("./data/x.com_cookies.txt");
+export const IG_COOKIE = path.resolve("./data/www.instagram.com_cookies.txt");
+export const X_COOKIE = path.resolve("./data/x.com_cookies.txt");
 const GALLERY_CONFIG = path.join(os.homedir(), ".config", "gallery-dl", "config.json");
 
 // gallery-dl lee cookies desde su config: o una ruta a archivo Netscape, o ["navegador"]

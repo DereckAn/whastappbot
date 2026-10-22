@@ -9,6 +9,10 @@ services:
       - gallery-dl-config:/root/.config/gallery-dl
     env_file:
       - .env
+    environment:
+      UI_HOST: 0.0.0.0  # dentro del contenedor; el puerto solo se publica en localhost
+    ports:
+      - "127.0.0.1:3000:3000"
     stdin_open: true  # Needed for QR code scanning
     tty: true
 

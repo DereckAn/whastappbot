@@ -5,6 +5,7 @@ import { initDatabase } from "./storage/db.js";
 import { fetchSecretsIfNeeded } from "./scripts/fetch-secrets.js";
 import { runCookieMenu } from "./scripts/setup-cookies.js";
 import { runDriveMenu } from "./scripts/setup-drive.js";
+import { startWebServer } from "./web/server.js";
 
 async function main() {
   try {
@@ -24,6 +25,8 @@ async function main() {
     // Inicializar base de datos
     initDatabase();
     console.log("✓ Base de datos inicializada");
+
+    startWebServer();
 
     console.log("Iniciando WhatsApp bot...");
     await startWhatsApp(); // adjunta el handler internamente
