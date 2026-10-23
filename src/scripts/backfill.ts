@@ -27,7 +27,7 @@ const totals = { downloaded: 0, skipped: 0, failed: 0 };
 for (const [i, url] of urls.entries()) {
   const prefix = `[${i + 1}/${urls.length}]`;
   try {
-    const result = await handleUrl(url, groupName);
+    const { result } = await handleUrl(url, groupName);
     totals[result]++;
     console.log(`${prefix} ${result === "downloaded" ? "✅" : "⏭️ "} ${url}`);
     if (result === "skipped") continue;

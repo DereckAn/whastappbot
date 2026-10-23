@@ -22,13 +22,18 @@ async function getGroupName(sock: WASocket, jid: string): Promise<string | null>
   }
 }
 
+export interface UrlResult {
+  result: "skipped" | "downloaded";
+  files: string[]; // vacío si se omitió
+}
+
 // Descarga una URL, la sube a Drive y la registra en la DB. Lanza error si falla la descarga.
-export async function handleUrl(url: string, groupName: string): Promise<"skipped" | "downloaded"> {
+export async function handleUrl(url: string, groupName: string): Promise<UrlResult> {
   botState.active.set(url, groupName);
   try {
-    const result = await downloadAndSave(url, groupName);
-    logEvent({ url, group: groupName, result });
-    return result;
+    const outcome = await downloadAndSave(url, groupName);
+    logEvent({ url, group: groupName, result: outcome.result });
+    return outcome;
   } catch (error) {
     logEvent({ url, group: groupName, result: "failed", error: String(error) });
     throw error;
@@ -37,10 +42,10 @@ export async function handleUrl(url: string, groupName: string): Promise<"skippe
   }
 }
 
-async function downloadAndSave(url: string, groupName: string): Promise<"skipped" | "downloaded"> {
+async function downloadAndSave(url: string, groupName: string): Promise<UrlResult> {
   if (isUrlDownloaded(url)) {
     console.log(`⏭️  Ya descargado: ${url}`);
-    return "skipped";
+    return { result: "skipped", files: [] };
   }
 
   const filePaths = await processUrl(url, groupName);
@@ -78,7 +83,7 @@ async function downloadAndSave(url: string, groupName: string): Promise<"skipped
     group_name: groupName,
     file_path: filePaths[0]!, // primer archivo como referencia
   });
-  return "downloaded";
+  return { result: "downloaded", files: filePaths };
 }
 
 export function setupMessageHandler(sock: WASocket): void {
