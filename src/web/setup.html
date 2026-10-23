@@ -1,0 +1,430 @@
+<!doctype html>
+<html class="dark" lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuración · Media Bot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            surface: "#111317", "surface-bright": "#37393d", "surface-variant": "#333538",
+            "surface-container-lowest": "#0c0e11", "surface-container-low": "#1a1c1f", "surface-container": "#1e2023",
+            "surface-container-high": "#282a2d", "surface-container-highest": "#333538",
+            "on-surface": "#e2e2e6", "on-surface-variant": "#bbcabf", outline: "#86948a", "outline-variant": "#3c4a42",
+            primary: "#4edea3", "primary-container": "#10b981", "primary-fixed-dim": "#4edea3",
+            "on-primary": "#003824", "on-primary-container": "#00422b",
+            secondary: "#93ccff", tertiary: "#ffb95f", "tertiary-fixed": "#ffddb8", error: "#ffb4ab",
+          },
+          borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" },
+          spacing: { "space-xs": "0.25rem", "space-sm": "0.5rem", "space-md": "0.75rem", "space-lg": "1rem", "space-xl": "1.5rem", margin: "1rem" },
+          fontFamily: { sans: ["Geist", "system-ui", "sans-serif"], mono: ["JetBrains Mono", "monospace"] },
+          fontSize: {
+            "headline-lg": ["1.5rem", { lineHeight: "2rem", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "headline-md": ["1.25rem", { lineHeight: "1.75rem", letterSpacing: "-0.015em", fontWeight: "600" }],
+            "headline-sm": ["1rem", { lineHeight: "1.5rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "body-md": ["0.875rem", { lineHeight: "1.375rem" }],
+            "body-sm": ["0.8125rem", { lineHeight: "1.25rem" }],
+            "code-sm": ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.02em" }],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { overscroll-behavior: none; }
+    .material-symbols-outlined { font-size: inherit; line-height: 1; }
+  </style>
+</head>
+<body class="bg-surface font-sans text-body-md text-on-surface antialiased min-h-screen flex flex-col">
+  <header class="sticky top-0 z-50 bg-surface/90 backdrop-blur-md">
+    <div class="h-14 px-margin flex items-center justify-between gap-space-lg">
+      <div class="flex items-center gap-space-md min-w-0">
+        <div class="flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-low">
+          <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+          <span class="font-mono text-code-sm" id="host"></span>
+        </div>
+        <div class="flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-high">
+          <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+          <span class="font-mono text-code-sm text-tertiary-fixed">Configuración inicial</span>
+        </div>
+      </div>
+      <nav class="hidden md:flex items-center gap-space-xs p-space-xs rounded bg-surface-container-lowest text-body-sm" aria-label="Pasos">
+        <span aria-current="step" class="flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-high"><span class="font-mono text-code-sm">01</span>Configuración</span>
+        <span class="text-outline-variant font-mono text-code-sm">/</span>
+        <span class="flex items-center gap-space-xs px-space-sm py-space-xs text-on-surface-variant"><span class="font-mono text-code-sm">02</span>WhatsApp</span>
+        <span class="text-outline-variant font-mono text-code-sm">/</span>
+        <span class="flex items-center gap-space-xs px-space-sm py-space-xs text-on-surface-variant"><span class="font-mono text-code-sm">03</span>Dashboard</span>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 w-full max-w-4xl mx-auto px-margin py-space-xl flex flex-col gap-space-xl">
+    <!-- Bienvenida + pasos -->
+    <div class="flex flex-col gap-space-sm bg-surface-container-low rounded-xl p-space-lg relative overflow-hidden">
+      <div class="absolute -top-12 -right-12 w-48 h-48 bg-primary/10 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="flex items-center gap-space-xs">
+        <span class="font-mono text-code-sm px-space-sm py-space-xs rounded bg-surface-container text-primary font-medium tracking-wide">PASO 01 / 03</span>
+        <span class="font-mono text-code-sm text-outline">•</span>
+        <span class="font-mono text-code-sm text-on-surface-variant">AUTO-HOSPEDADO</span>
+      </div>
+      <div class="flex flex-col gap-space-xs mt-space-xs">
+        <h1 class="text-headline-lg tracking-tight">Bienvenido a WhatsApp Media Bot</h1>
+        <p class="text-on-surface-variant max-w-2xl leading-relaxed">
+          Configura las cookies de Instagram y X y decide si quieres respaldo en Google Drive. Después vinculas WhatsApp y el bot empieza a descargar los links de tus grupos.
+        </p>
+      </div>
+      <ol class="grid grid-cols-1 md:grid-cols-3 gap-space-sm mt-space-md bg-surface-container/60 p-space-sm rounded-lg">
+        <li class="flex items-center gap-space-sm bg-surface-container-high px-space-md py-space-sm rounded">
+          <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center font-mono text-code-sm text-on-primary font-bold">1</div>
+          <div class="flex flex-col min-w-0">
+            <span class="font-mono text-code-sm truncate font-semibold">Cookies de sesión</span>
+            <span class="font-mono text-code-sm text-primary flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>En configuración</span>
+          </div>
+        </li>
+        <li class="flex items-center gap-space-sm bg-surface-container-low px-space-md py-space-sm rounded opacity-85">
+          <div class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-mono text-code-sm font-bold">2</div>
+          <div class="flex flex-col min-w-0">
+            <span class="font-mono text-code-sm text-on-surface-variant truncate">Almacenamiento y Drive</span>
+            <span class="font-mono text-code-sm text-outline">Opcional</span>
+          </div>
+        </li>
+        <li class="flex items-center gap-space-sm bg-surface-container-lowest px-space-md py-space-sm rounded opacity-50">
+          <div class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center font-mono text-code-sm font-bold">3</div>
+          <div class="flex flex-col min-w-0">
+            <span class="font-mono text-code-sm text-on-surface-variant truncate">Vincular WhatsApp</span>
+            <span class="font-mono text-code-sm text-outline">Escaneo QR</span>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Módulo 01: cookies -->
+    <section class="bg-surface-container-low rounded-xl p-space-lg flex flex-col gap-space-lg">
+      <div class="flex flex-col md:flex-row md:items-start justify-between gap-space-md">
+        <div class="flex flex-col gap-space-xs max-w-xl">
+          <div class="flex items-center gap-space-xs flex-wrap">
+            <span class="font-mono text-code-sm px-space-xs py-0.5 rounded bg-surface-container-high">MÓDULO 01</span>
+            <h2 class="text-headline-md">Cookies de Instagram y X / Twitter</h2>
+          </div>
+          <p class="text-body-sm text-on-surface-variant">
+            gallery-dl usa tus sesiones para descargar carruseles, reels y publicaciones que piden iniciar sesión. Si las cookies actuales ya funcionan, puedes saltar este paso.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-space-xs shrink-0" id="cookie-pills"></div>
+      </div>
+
+      <div class="flex flex-col gap-space-md bg-surface-container rounded-lg p-space-md">
+        <div class="flex flex-col sm:flex-row gap-space-xs bg-surface-container-lowest p-space-xs rounded" role="tablist">
+          <button role="tab" data-tab="browser" class="tab flex-1 flex items-center justify-center gap-space-xs py-space-xs px-space-sm rounded text-body-sm transition-all">
+            <span class="material-symbols-outlined text-[16px] text-primary">travel_explore</span>
+            <span class="font-medium">Extraer del navegador</span>
+            <span class="font-mono text-code-sm px-1.5 py-0.5 rounded bg-primary-container text-on-primary-container">Recomendado</span>
+          </button>
+          <button role="tab" data-tab="upload" class="tab flex-1 flex items-center justify-center gap-space-xs py-space-xs px-space-sm rounded text-body-sm transition-all">
+            <span class="material-symbols-outlined text-[16px]">upload_file</span><span>Cargar cookies.txt</span>
+          </button>
+          <button role="tab" data-tab="repo" class="tab flex-1 flex items-center justify-center gap-space-xs py-space-xs px-space-sm rounded text-body-sm transition-all">
+            <span class="material-symbols-outlined text-[16px]">cloud_sync</span><span>Repositorio privado</span>
+          </button>
+        </div>
+
+        <!-- Extraer del navegador -->
+        <div class="tab-panel flex flex-col gap-space-md" data-panel="browser">
+          <span class="font-mono text-code-sm text-outline">ELIGE EL NAVEGADOR DONDE TIENES SESIÓN EN INSTAGRAM Y X</span>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-space-sm" id="browsers"></div>
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-space-md pt-space-xs">
+            <button id="btn-browser" type="button" class="action w-full sm:w-auto px-space-lg py-space-sm bg-primary text-on-primary rounded text-body-sm font-semibold flex items-center justify-center gap-space-xs hover:bg-primary-fixed-dim transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-wait">
+              <span class="material-symbols-outlined text-[18px]">key</span><span class="whitespace-nowrap">Extraer cookies de Instagram y X</span>
+            </button>
+            <span class="font-mono text-code-sm text-outline text-center sm:text-right">Usa yt-dlp en tu equipo. Si falla, cierra ese navegador y reintenta desde otro.</span>
+          </div>
+        </div>
+
+        <!-- Cargar archivos -->
+        <form class="tab-panel hidden flex-col gap-space-md" data-panel="upload" id="upload-form">
+          <span class="font-mono text-code-sm text-outline">SUBIDA MANUAL · FORMATO NETSCAPE (COOKIES.TXT)</span>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+            <label class="drop relative p-space-lg rounded bg-surface-container-lowest flex flex-col items-center justify-center text-center gap-space-sm hover:bg-surface-container-high transition-colors cursor-pointer">
+              <input type="file" name="ig" accept=".txt" class="absolute inset-0 opacity-0 cursor-pointer" />
+              <span class="material-symbols-outlined text-[32px] text-primary">photo_camera</span>
+              <span class="font-medium">Cookies de Instagram</span>
+              <span class="file-name font-mono text-code-sm text-outline">Arrastra el archivo o haz clic aquí</span>
+            </label>
+            <label class="drop relative p-space-lg rounded bg-surface-container-lowest flex flex-col items-center justify-center text-center gap-space-sm hover:bg-surface-container-high transition-colors cursor-pointer">
+              <input type="file" name="x" accept=".txt" class="absolute inset-0 opacity-0 cursor-pointer" />
+              <span class="material-symbols-outlined text-[32px] text-tertiary">tag</span>
+              <span class="font-medium">Cookies de X / Twitter</span>
+              <span class="file-name font-mono text-code-sm text-outline">Arrastra el archivo o haz clic aquí</span>
+            </label>
+          </div>
+          <button type="submit" class="action self-start px-space-lg py-space-sm bg-primary text-on-primary rounded text-body-sm font-semibold flex items-center gap-space-xs hover:bg-primary-fixed-dim disabled:opacity-60 disabled:cursor-wait">
+            <span class="material-symbols-outlined text-[18px]">save</span><span>Guardar archivos</span>
+          </button>
+        </form>
+
+        <!-- Repo privado -->
+        <div class="tab-panel hidden flex-col gap-space-md" data-panel="repo">
+          <span class="font-mono text-code-sm text-outline">REPOSITORIO PRIVADO DE GITHUB</span>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm bg-surface-container-lowest p-space-md rounded">
+            <span class="text-body-sm text-on-surface-variant">Descarga las cookies con el <code class="font-mono text-code-sm text-on-surface">GITHUB_TOKEN</code> de tu <code class="font-mono text-code-sm text-on-surface">.env</code>.</span>
+            <button id="btn-repo" type="button" class="action px-space-md py-space-xs rounded bg-surface-container-high text-body-sm hover:bg-surface-bright flex items-center justify-center gap-1 disabled:opacity-60 disabled:cursor-wait">
+              <span class="material-symbols-outlined text-[16px]">download</span>Sincronizar
+            </button>
+          </div>
+        </div>
+
+        <!-- Log de resultados -->
+        <div class="bg-surface-container-lowest rounded p-space-sm flex flex-col gap-1 font-mono text-code-sm">
+          <div class="flex items-center justify-between text-outline">
+            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-primary">terminal</span>REGISTRO</span>
+            <span class="font-medium" id="log-state"></span>
+          </div>
+          <div class="text-on-surface-variant pt-1 leading-relaxed whitespace-pre-wrap break-words" id="log"><span class="text-outline">Sin acciones todavía.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Módulo 02: almacenamiento y Drive -->
+    <section class="bg-surface-container-low rounded-xl p-space-lg flex flex-col gap-space-lg">
+      <div class="flex flex-col gap-space-xs">
+        <div class="flex items-center gap-space-xs flex-wrap">
+          <span class="font-mono text-code-sm px-space-xs py-0.5 rounded bg-surface-container-high">MÓDULO 02</span>
+          <h2 class="text-headline-md">Almacenamiento y Google Drive</h2>
+        </div>
+        <p class="text-body-sm text-on-surface-variant">
+          Los archivos siempre se guardan en tu disco por grupo y plataforma. Opcionalmente se sube una copia a Google Drive.
+        </p>
+      </div>
+      <div class="bg-surface-container rounded-lg p-space-md flex flex-col gap-space-md">
+        <label class="flex items-center justify-between gap-space-md bg-surface-container-high p-space-md rounded cursor-pointer" id="drive-row">
+          <div class="flex items-center gap-space-md">
+            <div class="w-10 h-10 shrink-0 rounded-lg bg-surface-container flex items-center justify-center">
+              <span class="material-symbols-outlined text-[24px] text-secondary">cloud_upload</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-medium">Subir copia a Google Drive esta sesión</span>
+              <span class="font-mono text-code-sm text-on-surface-variant" id="drive-hint"></span>
+            </div>
+          </div>
+          <span class="relative inline-flex items-center shrink-0">
+            <input type="checkbox" id="drive-toggle" class="sr-only peer" />
+            <span class="w-9 h-5 bg-surface-container-lowest peer-checked:bg-primary peer-disabled:opacity-40 rounded-full transition-colors"></span>
+            <span class="absolute top-[3px] left-[3px] w-3.5 h-3.5 bg-on-surface peer-checked:bg-on-primary rounded-full transition-transform peer-checked:translate-x-4"></span>
+          </span>
+        </label>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+          <div class="bg-surface-container-lowest p-space-md rounded flex flex-col gap-space-sm min-w-0">
+            <span class="font-mono text-code-sm text-outline">CARPETA LOCAL</span>
+            <div class="flex items-center gap-space-sm min-w-0">
+              <span class="material-symbols-outlined text-[20px] text-on-surface-variant">folder_special</span>
+              <span class="font-mono text-code-sm truncate" id="local-dir" title=""></span>
+            </div>
+            <span class="font-mono text-code-sm text-outline">{grupo}/{plataforma}/archivo</span>
+          </div>
+          <div class="bg-surface-container-lowest p-space-md rounded flex flex-col gap-space-sm min-w-0">
+            <span class="font-mono text-code-sm text-outline">CARPETA EN GOOGLE DRIVE</span>
+            <div class="flex items-center gap-space-sm min-w-0">
+              <span class="material-symbols-outlined text-[20px] text-on-surface-variant">folder</span>
+              <span class="font-mono text-code-sm truncate" id="drive-folder"></span>
+            </div>
+            <span class="font-mono text-code-sm text-outline">GDRIVE_ROOT_FOLDER_ID en .env</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Iniciar -->
+    <div class="flex flex-col gap-space-md">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-space-md bg-surface-container-low p-space-lg rounded-xl">
+        <span class="text-body-sm text-on-surface-variant">Grupos monitoreados: <span class="text-on-surface" id="groups"></span></span>
+        <button id="btn-start" type="button" class="action w-full sm:w-auto px-space-xl py-space-md bg-primary text-on-primary rounded text-headline-sm flex items-center justify-center gap-space-sm hover:bg-primary-fixed-dim transition-all group active:scale-[0.99] disabled:opacity-60 disabled:cursor-wait">
+          <span>Iniciar bot y vincular WhatsApp</span>
+          <span class="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+        </button>
+      </div>
+      <p class="flex items-center justify-center gap-space-xs text-center px-space-md font-mono text-code-sm text-outline">
+        <span class="material-symbols-outlined text-[16px]">info</span>
+        Las cookies se guardan sin cifrar en data/ (excluido de git). No compartas esa carpeta.
+      </p>
+    </div>
+  </main>
+
+  <footer class="bg-surface-container-lowest">
+    <div class="px-margin h-8 flex items-center justify-between font-mono text-code-sm text-outline">
+      <span id="footer-status">FASE: CONFIGURACIÓN</span>
+      <span>WHATSAPP MEDIA BOT</span>
+    </div>
+  </footer>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const BROWSER_ICONS = { brave: ["shield", "text-tertiary"], chrome: ["public", "text-secondary"], firefox: ["local_fire_department", "text-tertiary-fixed"], chromium: ["language", "text-secondary"] };
+    const BROWSER_NAMES = { brave: "Brave", chrome: "Google Chrome", firefox: "Firefox", chromium: "Chromium" };
+
+    function ago(iso) {
+      const sec = Math.max(0, Math.round((Date.now() - new Date(iso)) / 1000));
+      if (sec < 3600) return Math.max(1, Math.round(sec / 60)) + " min";
+      if (sec < 86400) return Math.round(sec / 3600) + " h";
+      return Math.round(sec / 86400) + " d";
+    }
+
+    async function getStatus() {
+      const res = await fetch("/api/status");
+      return res.json();
+    }
+
+    async function post(url, body) {
+      const init = body instanceof FormData
+        ? { method: "POST", body }
+        : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) };
+      const res = await fetch(url, init);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      return data;
+    }
+
+    // --- Pestañas de cookies
+    function showTab(name) {
+      document.querySelectorAll(".tab").forEach((b) => {
+        const on = b.dataset.tab === name;
+        b.setAttribute("aria-selected", String(on));
+        b.classList.toggle("bg-surface-container-high", on);
+        b.classList.toggle("text-on-surface", on);
+        b.classList.toggle("text-on-surface-variant", !on);
+      });
+      document.querySelectorAll(".tab-panel").forEach((p) => {
+        p.classList.toggle("hidden", p.dataset.panel !== name);
+        p.classList.toggle("flex", p.dataset.panel === name);
+      });
+    }
+    document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+    // --- Render del estado real
+    function pill(label, modified) {
+      const el = document.createElement("div");
+      el.className = "h-6 px-space-sm rounded bg-surface-container flex items-center gap-space-xs font-mono text-code-sm";
+      const dot = document.createElement("div");
+      dot.className = "w-1.5 h-1.5 rounded-full " + (modified ? "bg-primary" : "bg-tertiary");
+      const name = document.createElement("span");
+      name.textContent = label + ":";
+      const value = document.createElement("span");
+      value.className = modified ? "text-primary" : "text-tertiary";
+      value.textContent = modified ? "cookies.txt (hace " + ago(modified) + ")" : "Falta";
+      el.append(dot, name, value);
+      return el;
+    }
+
+    function renderCookies(st) {
+      $("cookie-pills").replaceChildren(pill("Instagram", st.instagramCookies), pill("X", st.twitterCookies));
+    }
+
+    function renderBrowsers(browsers) {
+      $("browsers").replaceChildren(...browsers.map((b, i) => {
+        const [icon, color] = BROWSER_ICONS[b] ?? ["language", "text-secondary"];
+        const label = document.createElement("label");
+        label.className = "cursor-pointer flex items-center justify-between gap-space-xs p-space-sm rounded bg-surface-container-low hover:bg-surface-container-high has-[:checked]:bg-surface-container-highest has-[:checked]:ring-1 has-[:checked]:ring-primary transition-colors";
+        label.innerHTML = '<span class="flex items-center gap-space-xs min-w-0"><span class="material-symbols-outlined text-[20px]"></span><span class="truncate"></span></span><input type="radio" name="browser" class="accent-[#4edea3]" />';
+        label.querySelector(".material-symbols-outlined").textContent = icon;
+        label.querySelector(".material-symbols-outlined").classList.add(color);
+        label.querySelector(".truncate").textContent = BROWSER_NAMES[b] ?? b;
+        const input = label.querySelector("input");
+        input.value = b;
+        input.checked = i === 0;
+        return label;
+      }));
+    }
+
+    function renderDrive(st) {
+      const toggle = $("drive-toggle");
+      toggle.disabled = !st.gdriveConfigured;
+      toggle.checked = st.gdriveConfigured;
+      $("drive-row").classList.toggle("cursor-not-allowed", !st.gdriveConfigured);
+      $("drive-hint").textContent = st.gdriveConfigured
+        ? "Usa las credenciales OAuth de data/credentials/"
+        : "Apagado en .env (GDRIVE_ENABLED=false)";
+      $("local-dir").textContent = st.downloadsDir;
+      $("local-dir").title = st.downloadsDir;
+      $("drive-folder").textContent = st.gdriveFolderId ?? "Raíz de Drive";
+    }
+
+    // --- Registro de acciones
+    let logEmpty = true;
+    function log(kind, text) {
+      if (logEmpty) $("log").replaceChildren(), (logEmpty = false);
+      const line = document.createElement("div");
+      const time = document.createElement("span");
+      time.className = "text-outline";
+      time.textContent = "[" + new Date().toLocaleTimeString() + "] ";
+      const tag = document.createElement("span");
+      tag.className = { ok: "text-primary", error: "text-error", info: "text-outline" }[kind];
+      tag.textContent = { ok: "OK: ", error: "ERROR: ", info: "" }[kind];
+      line.append(time, tag, text);
+      $("log").append(line);
+      $("log-state").textContent = { ok: "[LISTO]", error: "[ERROR]", info: "[TRABAJANDO]" }[kind];
+      $("log-state").className = "font-medium " + { ok: "text-primary", error: "text-error", info: "text-tertiary" }[kind];
+    }
+
+    async function runStep(startText, okText, request) {
+      document.querySelectorAll(".action").forEach((b) => (b.disabled = true));
+      log("info", startText);
+      try {
+        await request();
+        log("ok", okText);
+        renderCookies((await getStatus()).settings);
+      } catch (e) {
+        log("error", e.message);
+      } finally {
+        document.querySelectorAll(".action").forEach((b) => (b.disabled = false));
+      }
+    }
+
+    $("btn-browser").addEventListener("click", () => {
+      const browser = document.querySelector("input[name=browser]:checked")?.value;
+      runStep("Exportando cookies de " + (BROWSER_NAMES[browser] ?? browser) + "…", "Cookies de Instagram y X actualizadas.",
+        () => post("/api/setup/cookies/browser", { browser }));
+    });
+    $("btn-repo").addEventListener("click", () =>
+      runStep("Descargando cookies del repo privado…", "Cookies descargadas del repo.", () => post("/api/setup/cookies/repo")));
+    $("upload-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      runStep("Guardando archivos…", "Archivos de cookies guardados.", () => post("/api/setup/cookies/upload", new FormData(e.target)));
+    });
+    document.querySelectorAll(".drop input").forEach((input) => input.addEventListener("change", () => {
+      const file = input.files[0];
+      const name = input.closest(".drop").querySelector(".file-name");
+      name.textContent = file ? file.name + " · " + (file.size / 1024).toFixed(1) + " KB" : "Arrastra el archivo o haz clic aquí";
+      name.classList.toggle("text-primary", !!file);
+    }));
+
+    $("btn-start").addEventListener("click", async () => {
+      $("btn-start").disabled = true;
+      try {
+        await post("/api/setup/start", { drive: $("drive-toggle").checked });
+        location.href = "/";
+      } catch (e) {
+        log("error", e.message);
+        $("btn-start").disabled = false;
+      }
+    });
+
+    (async () => {
+      $("host").textContent = location.host;
+      showTab("browser");
+      const s = await getStatus();
+      if (s.phase !== "setup") return (location.href = "/");
+      renderCookies(s.settings);
+      renderBrowsers(s.settings.browsers);
+      renderDrive(s.settings);
+      $("groups").textContent = s.settings.monitoredGroups.join(", ") || "ninguno (MONITORED_GROUPS)";
+    })();
+  </script>
+</body>
+</html>

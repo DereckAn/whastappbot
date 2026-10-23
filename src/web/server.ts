@@ -1,5 +1,5 @@
 import path from "path";
-import { existsSync } from "fs";
+import { existsSync, statSync } from "fs";
 import { config } from "../config.js";
 import { groupStats, listDownloads } from "../storage/db.js";
 import { BROWSERS, IG_COOKIE, X_COOKIE, exportBrowserCookies, fromRepo, saveUploadedCookies } from "../scripts/setup-cookies.js";
@@ -7,10 +7,14 @@ import { botState, finishSetup } from "./state.js";
 // @ts-ignore: generador QR que ya trae qrcode-terminal (sin tipos)
 import QRCode from "qrcode-terminal/vendor/QRCode";
 import page from "./index.html";
+import setupPage from "./setup.html";
 
 const DOWNLOADS_ROOT = path.resolve(config.downloadsDir);
 const DRIVE_CONFIGURED = config.gdriveEnabled; // valor del .env antes de que el usuario elija
 const MAX_COOKIE_BYTES = 2 * 1024 * 1024;
+
+// Fecha de modificación del archivo de cookies (null si no existe)
+const modifiedAt = (file: string) => (existsSync(file) ? statSync(file).mtime.toISOString() : null);
 
 function status() {
   const stats = new Map(groupStats().map((s) => [s.group_name, s]));
@@ -31,8 +35,9 @@ function status() {
       galleryDLPath: config.galleryDLPath,
       gdriveEnabled: config.gdriveEnabled,
       gdriveConfigured: DRIVE_CONFIGURED,
-      instagramCookies: existsSync(IG_COOKIE),
-      twitterCookies: existsSync(X_COOKIE),
+      instagramCookies: modifiedAt(IG_COOKIE),
+      twitterCookies: modifiedAt(X_COOKIE),
+      gdriveFolderId: config.gdriveRootFolderId ?? null,
       logLevel: config.logLevel,
       browsers: BROWSERS,
     },
@@ -76,6 +81,7 @@ export function startWebServer(): string {
     port: config.uiPort,
     routes: {
       "/": page,
+      "/setup": setupPage,
       "/api/status": () => Response.json(status()),
       "/api/qr": () =>
         botState.qr
