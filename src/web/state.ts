@@ -12,6 +12,7 @@ export interface BotEvent {
 export const botState = {
   phase: "setup" as "setup" | "running", // solo cambia en modo UI
   qr: null as string | null,
+  me: null as string | null, // número de WhatsApp vinculado
   qrVersion: 0, // cambia con cada QR nuevo (la página solo recarga la imagen entonces)
   connection: "connecting" as Connection,
   startedAt: new Date().toISOString(),

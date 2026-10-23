@@ -28,7 +28,10 @@ export async function startWhatsApp(): Promise<WASocket> {
     sock.ev.on("connection.update", (update) => {
         const { connection, lastDisconnect, qr } = update;
         if (connection) botState.connection = connection;
-        if (connection === "open") botState.qr = null;
+        if (connection === "open") {
+            botState.qr = null;
+            botState.me = sock.user?.id.split(/[:@]/)[0] ?? null;
+        }
 
         if (qr) {
             botState.connection = "qr";

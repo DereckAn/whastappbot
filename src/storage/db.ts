@@ -65,22 +65,31 @@ export function saveDownload(data: {
 
 // Filas por archivo (url contiene "#"); las filas sin "#" solo marcan el link como descargado
 export interface DownloadRow {
-  url: string;
+  id: number;
+  post_url: string; // link original (sin el "#archivo")
   platform: string;
   group_name: string;
   file_path: string;
   gdrive_id: string | null;
   downloaded_at: string;
+  part: number; // posición dentro del carrusel (1..parts)
+  parts: number;
 }
 
-export function listDownloads(group: string | null, limit: number): DownloadRow[] {
+// Todos los archivos de un grupo (o de todos), del más nuevo al más viejo; `search` filtra por link o ruta
+export function listDownloads(group: string | null, search: string | null): DownloadRow[] {
   return getDb()
     .prepare(`
-  SELECT url, platform, group_name, file_path, gdrive_id, downloaded_at FROM downloads
-  WHERE url LIKE '%#%' AND (?1 IS NULL OR group_name = ?1)
-  ORDER BY id DESC LIMIT ?2
+  SELECT * FROM (
+    SELECT id, substr(url, 1, instr(url, '#') - 1) AS post_url, platform, group_name, file_path, gdrive_id, downloaded_at,
+      ROW_NUMBER() OVER (PARTITION BY substr(url, 1, instr(url, '#') - 1) ORDER BY id) AS part,
+      COUNT(*) OVER (PARTITION BY substr(url, 1, instr(url, '#') - 1)) AS parts
+    FROM downloads WHERE url LIKE '%#%'
+  )
+  WHERE (?1 IS NULL OR group_name = ?1) AND (?2 IS NULL OR post_url LIKE '%' || ?2 || '%' OR file_path LIKE '%' || ?2 || '%')
+  ORDER BY id DESC
 `)
-    .all(group, limit) as DownloadRow[];
+    .all(group, search) as DownloadRow[];
 }
 
 export function groupStats(): { group_name: string; files: number; last: string }[] {
