@@ -12,6 +12,7 @@ import QRCode from "qrcode-terminal/vendor/QRCode";
 import page from "./index.html";
 import setupPage from "./setup.html";
 import backfillPage from "./backfill.html";
+import whatsappPage from "./whatsapp.html";
 
 const DOWNLOADS_ROOT = path.resolve(config.downloadsDir);
 const DRIVE_CONFIGURED = config.gdriveEnabled; // valor del .env antes de que el usuario elija
@@ -77,6 +78,9 @@ function status() {
     phase: botState.phase,
     connection: botState.connection,
     me: botState.me,
+    meName: botState.meName,
+    qrAt: botState.qr ? botState.qrAt : null,
+    connLog: botState.connLog,
     diskFree: diskFree(),
     qrVersion: botState.qr ? botState.qrVersion : null,
     startedAt: botState.startedAt,
@@ -89,6 +93,7 @@ function status() {
     settings: {
       monitoredGroups: config.monitoredGroups,
       downloadsDir: DOWNLOADS_ROOT,
+      whatsappAuthDir: path.resolve(config.whatsappAuthDir),
       galleryDLPath: config.galleryDLPath,
       gdriveEnabled: config.gdriveEnabled,
       gdriveConfigured: DRIVE_CONFIGURED,
@@ -193,6 +198,7 @@ export function startWebServer(): string {
         },
       },
       "/backfill": backfillPage,
+      "/whatsapp": whatsappPage,
       "/api/backfill": () => Response.json({ job: backfillJob, wait: WAIT_SECONDS, gdriveEnabled: config.gdriveEnabled }),
       "/api/backfill/analyze": {
         POST: async (req) => {

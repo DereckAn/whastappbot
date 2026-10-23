@@ -408,7 +408,7 @@
       $("btn-start").disabled = true;
       try {
         await post("/api/setup/start", { drive: $("drive-toggle").checked });
-        location.href = "/";
+        location.href = "/whatsapp";
       } catch (e) {
         log("error", e.message);
         $("btn-start").disabled = false;

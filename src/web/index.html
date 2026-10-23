@@ -62,7 +62,7 @@
       <nav class="hidden md:flex items-center gap-space-xs p-space-xs rounded bg-surface-container-lowest text-body-sm" aria-label="Pasos">
         <span class="flex items-center gap-space-xs px-space-sm py-space-xs text-on-surface-variant"><span class="font-mono text-code-sm">01</span>Configuración</span>
         <span class="text-outline-variant font-mono text-code-sm">/</span>
-        <span class="flex items-center gap-space-xs px-space-sm py-space-xs text-on-surface-variant"><span class="font-mono text-code-sm">02</span>WhatsApp</span>
+        <a href="/whatsapp" class="flex items-center gap-space-xs px-space-sm py-space-xs rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low"><span class="font-mono text-code-sm">02</span>WhatsApp</a>
         <span class="text-outline-variant font-mono text-code-sm">/</span>
         <span aria-current="step" class="flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-high"><span class="font-mono text-code-sm">03</span>Dashboard</span>
       </nav>
@@ -151,6 +151,7 @@
           <span class="font-mono text-code-sm text-tertiary uppercase tracking-wider">Paso 02 · Vincular WhatsApp</span>
           <h2 class="text-headline-sm">Escanea el código con tu teléfono</h2>
           <p class="text-body-sm text-on-surface-variant">WhatsApp → Dispositivos vinculados → Vincular dispositivo. El código se renueva solo.</p>
+          <a href="/whatsapp" class="self-start text-body-sm text-primary hover:underline">Abrir pantalla de vinculación →</a>
         </div>
       </div>
 
@@ -307,6 +308,7 @@
       connecting: ["Conectando…", "bg-tertiary", "Conectando con WhatsApp…"],
       qr: ["Esperando QR", "bg-tertiary animate-pulse", "Esperando que escanees el QR"],
       close: ["Desconectado", "bg-error", "Sin conexión, reintentando…"],
+      loggedOut: ["Sesión cerrada", "bg-error", "Sesión cerrada desde el teléfono: abre Vincular WhatsApp"],
     };
 
     function renderStatus(s) {

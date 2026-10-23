@@ -1,0 +1,328 @@
+<!doctype html>
+<html class="dark" lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vincular WhatsApp · Media Bot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            surface: "#111317", "surface-bright": "#37393d", "surface-variant": "#333538",
+            "surface-container-lowest": "#0c0e11", "surface-container-low": "#1a1c1f", "surface-container": "#1e2023",
+            "surface-container-high": "#282a2d", "surface-container-highest": "#333538",
+            "on-surface": "#e2e2e6", "on-surface-variant": "#bbcabf", outline: "#86948a", "outline-variant": "#3c4a42",
+            primary: "#4edea3", "primary-container": "#10b981", "on-primary": "#003824", "on-primary-container": "#00422b",
+            secondary: "#93ccff", tertiary: "#ffb95f", "tertiary-container": "#e29100",
+            error: "#ffb4ab", "error-container": "#93000a", "on-error-container": "#ffdad6",
+          },
+          borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" },
+          spacing: { "space-xs": "0.25rem", "space-sm": "0.5rem", "space-md": "0.75rem", "space-lg": "1rem", "space-xl": "1.5rem", margin: "1rem" },
+          fontFamily: { sans: ["Geist", "system-ui", "sans-serif"], mono: ["JetBrains Mono", "monospace"] },
+          fontSize: {
+            "headline-md": ["1.25rem", { lineHeight: "1.75rem", letterSpacing: "-0.015em", fontWeight: "600" }],
+            "headline-sm": ["1rem", { lineHeight: "1.5rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "body-sm": ["0.8125rem", { lineHeight: "1.25rem" }],
+            "code-sm": ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.02em" }],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { overscroll-behavior: none; }
+    .material-symbols-outlined { font-size: inherit; line-height: 1; }
+  </style>
+</head>
+<body class="bg-surface font-sans text-sm text-on-surface antialiased min-h-screen flex flex-col">
+  <header class="sticky top-0 z-40 bg-surface/90 backdrop-blur-md">
+    <div class="h-14 px-margin flex items-center justify-between gap-space-lg">
+      <div class="flex items-center gap-space-md min-w-0">
+        <div class="flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-low">
+          <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+          <span class="font-mono text-code-sm" id="host"></span>
+        </div>
+        <div class="flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-high">
+          <span class="w-1.5 h-1.5 rounded-full" id="pill-dot"></span>
+          <span class="font-mono text-code-sm" id="pill-text"></span>
+        </div>
+      </div>
+      <nav class="hidden md:flex items-center gap-space-xs p-space-xs rounded bg-surface-container-lowest text-body-sm" aria-label="Pasos">
+        <span class="flex items-center gap-space-xs px-space-sm py-space-xs text-on-surface-variant"><span class="font-mono text-code-sm">01</span>Configuración</span>
+        <span class="text-outline-variant font-mono text-code-sm">/</span>
+        <span aria-current="step" class="flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-high"><span class="font-mono text-code-sm">02</span>WhatsApp</span>
+        <span class="text-outline-variant font-mono text-code-sm">/</span>
+        <a href="/" class="flex items-center gap-space-xs px-space-sm py-space-xs rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low"><span class="font-mono text-code-sm">03</span>Dashboard</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 w-full px-margin py-space-md flex flex-col gap-space-lg">
+    <div class="flex flex-col gap-space-xs">
+      <div class="flex flex-wrap items-center gap-space-sm">
+        <span class="px-space-sm py-0.5 rounded bg-surface-container-high text-primary font-mono text-code-sm uppercase tracking-wider">Fase 02 / 03</span>
+        <span class="text-outline font-mono text-code-sm">::</span>
+        <h1 class="text-headline-sm">Vincular WhatsApp</h1>
+      </div>
+      <p class="text-body-sm text-on-surface-variant">
+        El bot se conecta como un dispositivo vinculado más de tu cuenta, igual que WhatsApp Web. Solo lee los grupos monitoreados; no envía mensajes.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+      <!-- Estado de la conexión -->
+      <div class="lg:col-span-7">
+        <div class="relative bg-surface-container-low rounded-xl p-space-xl flex flex-col items-center justify-center min-h-[460px] overflow-hidden">
+          <div class="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(#4edea3_1px,transparent_1px)] [background-size:16px_16px]"></div>
+
+          <!-- Esperando QR -->
+          <div class="view hidden flex-col items-center w-full max-w-sm text-center relative z-10" data-view="qr">
+            <div class="flex items-center justify-between w-full mb-space-md px-space-xs font-mono text-code-sm">
+              <div class="flex items-center gap-space-xs">
+                <span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+                <span class="text-primary uppercase">Esperando escaneo</span>
+              </div>
+              <div class="flex items-center gap-1 text-on-surface-variant">
+                <span class="material-symbols-outlined text-[14px]">timer</span>
+                <span>Generado hace <strong class="text-on-surface" id="qr-age">0s</strong></span>
+              </div>
+            </div>
+            <div class="relative p-3 bg-surface-container-lowest rounded-lg shadow-xl mb-space-md">
+              <div class="absolute top-0 left-0 w-3 h-3 bg-primary/80"></div>
+              <div class="absolute top-0 right-0 w-3 h-3 bg-primary/80"></div>
+              <div class="absolute bottom-0 left-0 w-3 h-3 bg-primary/80"></div>
+              <div class="absolute bottom-0 right-0 w-3 h-3 bg-primary/80"></div>
+              <img id="qr-img" alt="Código QR de WhatsApp" class="w-64 h-64 bg-white rounded" />
+            </div>
+            <p class="font-mono text-code-sm text-on-surface-variant">WhatsApp cambia el código cada poco tiempo; esta página muestra siempre el último.</p>
+          </div>
+
+          <!-- Conectando -->
+          <div class="view hidden flex-col items-center w-full max-w-sm text-center relative z-10 py-space-xl" data-view="connecting">
+            <div class="relative w-24 h-24 mb-space-lg flex items-center justify-center">
+              <div class="absolute inset-0 rounded-full bg-primary/10 animate-ping"></div>
+              <svg class="absolute w-20 h-20 animate-spin" viewBox="0 0 36 36">
+                <circle class="text-surface-container" cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" stroke-width="3"></circle>
+                <circle class="text-primary" cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" pathLength="100" stroke-dasharray="30 100"></circle>
+              </svg>
+              <span class="material-symbols-outlined text-primary text-[28px] animate-pulse">phonelink_ring</span>
+            </div>
+            <span class="px-space-sm py-0.5 rounded bg-secondary/10 text-secondary font-mono text-code-sm mb-space-xs">CONECTANDO</span>
+            <h3 class="text-headline-md mb-space-xs">Conectando con WhatsApp</h3>
+            <p class="text-body-sm text-on-surface-variant max-w-xs">Si ya vinculaste este bot antes, entra solo sin pedir QR. Si no, en unos segundos aparece el código.</p>
+          </div>
+
+          <!-- Conectado -->
+          <div class="view hidden flex-col items-center w-full max-w-md text-center relative z-10 py-space-lg" data-view="open">
+            <div class="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-space-md">
+              <span class="material-symbols-outlined text-[44px]">verified</span>
+            </div>
+            <div class="flex items-center gap-space-xs mb-space-xs">
+              <span class="w-2 h-2 rounded-full bg-primary"></span>
+              <span class="font-mono text-code-sm text-primary uppercase font-bold">Vinculado</span>
+            </div>
+            <h3 class="text-headline-md mb-1" id="me-number"></h3>
+            <p class="text-body-sm text-on-surface-variant mb-1" id="me-name"></p>
+            <p class="text-body-sm text-on-surface-variant mb-space-lg">
+              La sesión se guarda en <code class="font-mono text-code-sm text-on-surface break-all" id="auth-dir-open"></code>; al reiniciar el bot se reconecta sin QR.
+            </p>
+            <a href="/" class="w-full py-space-sm px-space-md rounded bg-primary text-on-primary text-headline-sm flex items-center justify-center gap-space-xs hover:opacity-90">
+              <span>Continuar al dashboard</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+            </a>
+          </div>
+
+          <!-- Reconectando -->
+          <div class="view hidden flex-col items-center w-full max-w-sm text-center relative z-10 py-space-xl" data-view="close">
+            <div class="w-16 h-16 rounded-full bg-tertiary-container/20 text-tertiary flex items-center justify-center mb-space-md">
+              <span class="material-symbols-outlined text-[36px] animate-spin [animation-duration:3s]">sync</span>
+            </div>
+            <span class="px-space-sm py-0.5 rounded bg-tertiary-container/30 text-tertiary font-mono text-code-sm uppercase mb-space-xs">Conexión interrumpida</span>
+            <h3 class="text-headline-md mb-space-xs">Reconectando</h3>
+            <p class="text-body-sm text-on-surface-variant">Se perdió la conexión (internet o WhatsApp). El bot vuelve a intentarlo solo; el registro de abajo muestra el motivo.</p>
+          </div>
+
+          <!-- Sesión cerrada -->
+          <div class="view hidden flex-col items-center w-full max-w-md text-center relative z-10 py-space-xl" data-view="loggedOut">
+            <div class="w-16 h-16 rounded-full bg-error-container/30 text-error flex items-center justify-center mb-space-md">
+              <span class="material-symbols-outlined text-[36px]">link_off</span>
+            </div>
+            <span class="px-space-sm py-0.5 rounded bg-error-container/40 text-error font-mono text-code-sm uppercase mb-space-xs">Sesión cerrada</span>
+            <h3 class="text-headline-md mb-space-xs">Se desvinculó desde el teléfono</h3>
+            <p class="text-body-sm text-on-surface-variant mb-space-md">El bot ya no reintenta con esta sesión. Para vincularlo de nuevo:</p>
+            <ol class="w-full text-left bg-surface-container p-space-md rounded-lg flex flex-col gap-space-xs text-body-sm list-decimal list-inside">
+              <li>Detén el bot (Ctrl+C en la terminal).</li>
+              <li>Borra la carpeta <code class="font-mono text-code-sm text-on-surface break-all" id="auth-dir-out"></code></li>
+              <li>Vuelve a ejecutar <code class="font-mono text-code-sm text-on-surface">bun dev ui</code> y escanea el QR nuevo.</li>
+            </ol>
+          </div>
+
+          <!-- Bot sin respuesta -->
+          <div class="view hidden flex-col items-center w-full max-w-sm text-center relative z-10 py-space-xl" data-view="offline">
+            <span class="material-symbols-outlined text-error text-[40px] mb-space-sm">cloud_off</span>
+            <h3 class="text-headline-md mb-space-xs">El bot no responde</h3>
+            <p class="text-body-sm text-on-surface-variant">Revisa que el proceso siga corriendo en la terminal.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Instrucciones -->
+      <div class="lg:col-span-5 flex flex-col gap-space-md">
+        <div class="bg-surface-container-low rounded-xl p-space-lg flex flex-col gap-space-md">
+          <div class="flex items-center justify-between gap-space-sm">
+            <h2 class="text-headline-sm">Cómo escanear</h2>
+            <span class="font-mono text-code-sm text-outline">WhatsApp multidispositivo</span>
+          </div>
+          <div class="flex items-start gap-space-md">
+            <div class="w-6 h-6 rounded bg-surface-container-high text-primary font-mono text-code-sm flex items-center justify-center shrink-0 mt-0.5">01</div>
+            <div class="flex flex-col">
+              <span class="text-body-sm font-medium">Abre WhatsApp en tu teléfono</span>
+              <span class="text-body-sm text-on-surface-variant">Con conexión a WiFi o datos.</span>
+            </div>
+          </div>
+          <div class="flex items-start gap-space-md">
+            <div class="w-6 h-6 rounded bg-surface-container-high text-primary font-mono text-code-sm flex items-center justify-center shrink-0 mt-0.5">02</div>
+            <div class="flex flex-col">
+              <span class="text-body-sm font-medium">Ve a Dispositivos vinculados</span>
+              <span class="text-body-sm text-on-surface-variant"><strong class="text-on-surface font-normal">Configuración</strong> (iPhone) o <strong class="text-on-surface font-normal">menú ⋮</strong> (Android) → <strong class="text-on-surface font-normal">Dispositivos vinculados</strong>.</span>
+            </div>
+          </div>
+          <div class="flex items-start gap-space-md">
+            <div class="w-6 h-6 rounded bg-surface-container-high text-primary font-mono text-code-sm flex items-center justify-center shrink-0 mt-0.5">03</div>
+            <div class="flex flex-col">
+              <span class="text-body-sm font-medium">Escanea el código</span>
+              <span class="text-body-sm text-on-surface-variant">Toca <strong class="text-on-surface font-normal">Vincular un dispositivo</strong> y apunta la cámara al QR de esta página.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-space-sm bg-surface-container-low rounded-lg flex items-center gap-space-sm">
+          <span class="material-symbols-outlined text-secondary text-[20px] shrink-0">info</span>
+          <p class="text-body-sm text-on-surface-variant">No compartas capturas de este código: quien lo escanee vincula su WhatsApp a este bot.</p>
+        </div>
+        <div class="p-space-sm bg-surface-container-low rounded-lg flex items-center gap-space-sm">
+          <span class="material-symbols-outlined text-tertiary text-[20px] shrink-0">warning</span>
+          <p class="text-body-sm text-on-surface-variant">Usa una cuenta con historial normal y solo en grupos privados: WhatsApp puede bloquear números nuevos que usan bots.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Registro de conexión -->
+    <div class="bg-surface-container-lowest rounded-xl overflow-hidden flex flex-col">
+      <div class="h-9 bg-surface-container px-space-md flex items-center justify-between text-outline font-mono text-code-sm">
+        <div class="flex items-center gap-space-md">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-error-container inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-tertiary-container inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-primary inline-block"></span>
+          </div>
+          <span class="text-on-surface font-semibold tracking-wide">Registro de conexión</span>
+        </div>
+        <button type="button" id="clear" class="hover:text-on-surface flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">delete</span> Limpiar</button>
+      </div>
+      <div id="log" class="p-space-md font-mono text-code-sm flex flex-col gap-1 max-h-40 overflow-y-auto"></div>
+    </div>
+
+    <div class="flex justify-end pb-space-lg">
+      <a href="/" id="go" class="px-space-lg py-space-sm rounded text-headline-sm flex items-center gap-space-xs">
+        <span id="go-text"></span><span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+      </a>
+    </div>
+  </main>
+
+  <footer class="bg-surface-container-lowest">
+    <div class="px-margin h-8 flex items-center justify-between font-mono text-code-sm text-outline">
+      <span id="footer-status"></span>
+      <span>WHATSAPP MEDIA BOT</span>
+    </div>
+  </footer>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let lastQrVersion = null;
+    let clearedAt = "";
+    let state = null;
+
+    const STATES = {
+      qr: ["Esperando QR", "bg-tertiary animate-pulse", "text-tertiary"],
+      connecting: ["Conectando", "bg-secondary animate-pulse", "text-secondary"],
+      open: ["Conectado", "bg-primary", "text-primary"],
+      close: ["Reconectando", "bg-tertiary animate-pulse", "text-tertiary"],
+      loggedOut: ["Sesión cerrada", "bg-error", "text-error"],
+      offline: ["Bot sin respuesta", "bg-error", "text-error"],
+    };
+    const TAG_COLORS = { OK: "text-primary", QR: "text-tertiary", SOCKET: "text-secondary", WARN: "text-tertiary", ERROR: "text-error" };
+
+    function show(view) {
+      document.querySelectorAll(".view").forEach((v) => {
+        v.classList.toggle("hidden", v.dataset.view !== view);
+        v.classList.toggle("flex", v.dataset.view === view);
+      });
+      const [label, dot, text] = STATES[view];
+      $("pill-dot").className = "w-1.5 h-1.5 rounded-full " + dot;
+      $("pill-text").className = "font-mono text-code-sm " + text;
+      $("pill-text").textContent = label;
+      $("footer-status").textContent = "WHATSAPP: " + label.toUpperCase();
+      const connected = view === "open";
+      $("go").className = "px-space-lg py-space-sm rounded flex items-center gap-space-xs " + (connected
+        ? "bg-primary text-on-primary text-headline-sm hover:opacity-90"
+        : "bg-surface-container text-on-surface-variant hover:text-on-surface text-body-sm");
+      $("go-text").textContent = connected ? "Ir al dashboard" : "Omitir por ahora";
+    }
+
+    function line(entry) {
+      const row = document.createElement("div");
+      row.className = "flex gap-space-sm";
+      const time = document.createElement("span");
+      time.className = "text-outline shrink-0";
+      time.textContent = "[" + new Date(entry.at).toLocaleTimeString("es", { hour12: false }) + "]";
+      const tag = document.createElement("span");
+      tag.className = "shrink-0 " + (TAG_COLORS[entry.tag] ?? "text-on-surface-variant");
+      tag.textContent = "[" + entry.tag + "]";
+      const text = document.createElement("span");
+      text.className = "text-on-surface";
+      text.textContent = entry.text;
+      row.append(time, tag, text);
+      return row;
+    }
+
+    function render(s) {
+      state = s;
+      show(s.connection);
+      if (s.qrVersion !== null && s.qrVersion !== lastQrVersion) $("qr-img").src = "/api/qr?v=" + s.qrVersion;
+      lastQrVersion = s.qrVersion;
+      if (s.qrAt) $("qr-age").textContent = Math.max(0, Math.round((Date.now() - new Date(s.qrAt)) / 1000)) + "s";
+      $("me-number").textContent = s.me ? "+" + s.me : "Número desconocido";
+      $("me-name").textContent = s.meName ?? "";
+      $("auth-dir-open").textContent = s.settings.whatsappAuthDir;
+      $("auth-dir-out").textContent = s.settings.whatsappAuthDir;
+      const entries = s.connLog.filter((e) => e.at > clearedAt).reverse();
+      const atBottom = $("log").scrollTop + $("log").clientHeight >= $("log").scrollHeight - 4;
+      $("log").replaceChildren(...(entries.length ? entries.map(line) : [Object.assign(document.createElement("div"), { className: "text-outline", textContent: "Sin eventos todavía." })]));
+      if (atBottom) $("log").scrollTop = $("log").scrollHeight;
+    }
+
+    $("clear").addEventListener("click", () => { clearedAt = new Date().toISOString(); if (state) render(state); });
+    $("host").textContent = location.host;
+
+    async function poll() {
+      try {
+        const res = await fetch("/api/status");
+        const s = await res.json();
+        if (s.phase === "setup") return location.replace("/setup");
+        render(s);
+      } catch {
+        show("offline");
+      }
+    }
+    poll();
+    setInterval(poll, 2000);
+  </script>
+</body>
+</html>
