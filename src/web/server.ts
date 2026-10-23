@@ -1,17 +1,22 @@
 import path from "path";
 import { existsSync, statSync, statfsSync } from "fs";
 import { config } from "../config.js";
-import { groupStats, listDownloads, type DownloadRow } from "../storage/db.js";
+import { groupStats, isUrlDownloaded, listDownloads, type DownloadRow } from "../storage/db.js";
+import { identifyPlatform } from "../downloader/parser.js";
+import { parseChatExport } from "../whatsapp/chat-export.js";
+import { WAIT_SECONDS, backfillJob, controlBackfill, startBackfill } from "./backfill.js";
 import { BROWSERS, IG_COOKIE, X_COOKIE, exportBrowserCookies, fromRepo, saveUploadedCookies } from "../scripts/setup-cookies.js";
 import { botState, finishSetup } from "./state.js";
 // @ts-ignore: generador QR que ya trae qrcode-terminal (sin tipos)
 import QRCode from "qrcode-terminal/vendor/QRCode";
 import page from "./index.html";
 import setupPage from "./setup.html";
+import backfillPage from "./backfill.html";
 
 const DOWNLOADS_ROOT = path.resolve(config.downloadsDir);
 const DRIVE_CONFIGURED = config.gdriveEnabled; // valor del .env antes de que el usuario elija
 const MAX_COOKIE_BYTES = 2 * 1024 * 1024;
+const MAX_CHAT_BYTES = 50 * 1024 * 1024;
 
 const VIDEO_EXT = /\.(mp4|webm|mov|m4v)$/i;
 const fileSize = (file: string) => {
@@ -106,25 +111,37 @@ function qrSvg(text: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n + 8} ${n + 8}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
 }
 
-// Ejecuta un paso de configuración y devuelve { ok } o { error } a la página
-async function setupStep(req: Request, step: () => unknown): Promise<Response> {
+// Ejecuta una acción de la página (solo en la fase indicada) y devuelve su resultado o { error }
+async function action(req: Request, phase: "setup" | "running", step: () => unknown): Promise<Response> {
   // Otra web abierta en el navegador no puede enviar formularios aquí
   const origin = req.headers.get("origin");
   if (origin && origin !== new URL(req.url).origin) return Response.json({ error: "Origen no permitido" }, { status: 403 });
-  if (botState.phase !== "setup") return Response.json({ error: "El bot ya arrancó" }, { status: 409 });
+  if (botState.phase !== phase) {
+    return Response.json({ error: phase === "setup" ? "El bot ya arrancó" : "Termina la configuración primero" }, { status: 409 });
+  }
   try {
-    await step();
-    return Response.json({ ok: true });
+    return Response.json((await step()) ?? { ok: true });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
 }
+const setupStep = (req: Request, step: () => unknown) => action(req, "setup", step);
 
-async function readUpload(form: { get(name: string): unknown }, field: string): Promise<string | null> {
+type Form = { get(name: string): unknown };
+
+async function readUpload(form: Form, field: string, maxBytes = MAX_COOKIE_BYTES): Promise<string | null> {
   const file = form.get(field);
   if (!(file instanceof File) || file.size === 0) return null;
-  if (file.size > MAX_COOKIE_BYTES) throw new Error(`${file.name} es demasiado grande`);
+  if (file.size > maxBytes) throw new Error(`${file.name} es demasiado grande`);
   return file.text();
+}
+
+// Chat exportado de WhatsApp subido desde /backfill
+async function readChat(form: Form) {
+  const text = await readUpload(form, "chat", MAX_CHAT_BYTES);
+  if (!text) throw new Error("Sube el .txt exportado del chat.");
+  const file = form.get("chat") as File;
+  return { name: file.name, size: file.size, ...parseChatExport(text) };
 }
 
 export function startWebServer(): string {
@@ -172,6 +189,43 @@ export function startWebServer(): string {
           return setupStep(req, () => {
             config.gdriveEnabled = DRIVE_CONFIGURED && drive === true;
             finishSetup();
+          });
+        },
+      },
+      "/backfill": backfillPage,
+      "/api/backfill": () => Response.json({ job: backfillJob, wait: WAIT_SECONDS, gdriveEnabled: config.gdriveEnabled }),
+      "/api/backfill/analyze": {
+        POST: async (req) => {
+          const form = await req.formData();
+          return action(req, "running", async () => {
+            const chat = await readChat(form);
+            return {
+              ...chat,
+              links: chat.links.map((l) => ({ ...l, platform: identifyPlatform(l.url), existing: isUrlDownloaded(l.url) })),
+            };
+          });
+        },
+      },
+      "/api/backfill/start": {
+        POST: async (req) => {
+          const form = await req.formData();
+          return action(req, "running", async () => {
+            const group = String(form.get("group") ?? "");
+            const count = Number(form.get("count"));
+            // El grupo se usa como carpeta: solo grupos monitoreados
+            if (!config.monitoredGroups.includes(group)) throw new Error(`"${group}" no está en MONITORED_GROUPS.`);
+            if (!Number.isInteger(count) || count < 1) throw new Error("Cantidad de links inválida.");
+            const pending = (await readChat(form)).links.filter((l) => !isUrlDownloaded(l.url));
+            startBackfill(pending.slice(-count), group); // los N más recientes que faltan
+          });
+        },
+      },
+      "/api/backfill/control": {
+        POST: async (req) => {
+          const { action: what } = (await req.json()) as { action: "pause" | "resume" | "stop" };
+          return action(req, "running", () => {
+            if (!["pause", "resume", "stop"].includes(what)) throw new Error("Acción inválida.");
+            controlBackfill(what);
           });
         },
       },

@@ -1,0 +1,631 @@
+<!doctype html>
+<html class="dark" lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backfill · Media Bot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            surface: "#111317", "surface-bright": "#37393d", "surface-variant": "#333538",
+            "surface-container-lowest": "#0c0e11", "surface-container-low": "#1a1c1f", "surface-container": "#1e2023",
+            "surface-container-high": "#282a2d", "surface-container-highest": "#333538",
+            "on-surface": "#e2e2e6", "on-surface-variant": "#bbcabf", outline: "#86948a", "outline-variant": "#3c4a42",
+            primary: "#4edea3", "primary-container": "#10b981", "on-primary": "#003824", "on-primary-container": "#00422b",
+            secondary: "#93ccff", "secondary-container": "#3198dc", "on-secondary-container": "#002c47",
+            tertiary: "#ffb95f", "tertiary-container": "#e29100", "on-tertiary-container": "#523200",
+            error: "#ffb4ab", "error-container": "#93000a", "on-error-container": "#ffdad6",
+          },
+          borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" },
+          spacing: { "space-xs": "0.25rem", "space-sm": "0.5rem", "space-md": "0.75rem", "space-lg": "1rem", "space-xl": "1.5rem", margin: "1rem", gutter: "0.75rem" },
+          fontFamily: { sans: ["Geist", "system-ui", "sans-serif"], mono: ["JetBrains Mono", "monospace"] },
+          fontSize: {
+            "headline-md": ["1.25rem", { lineHeight: "1.75rem", letterSpacing: "-0.015em", fontWeight: "600" }],
+            "headline-sm": ["1rem", { lineHeight: "1.5rem", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "body-sm": ["0.8125rem", { lineHeight: "1.25rem" }],
+            "code-md": ["0.75rem", { lineHeight: "1.125rem" }],
+            "code-sm": ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.02em" }],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { overscroll-behavior: none; }
+    .material-symbols-outlined { font-size: inherit; line-height: 1; }
+  </style>
+</head>
+<body class="bg-surface font-sans text-sm text-on-surface antialiased min-h-screen flex flex-col">
+  <header class="sticky top-0 z-40 bg-surface/90 backdrop-blur-md">
+    <div class="h-14 px-margin flex items-center justify-between gap-space-lg">
+      <div class="flex items-center gap-space-md min-w-0">
+        <div class="flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-low">
+          <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+          <span class="font-mono text-code-sm" id="host"></span>
+        </div>
+        <div class="flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-high">
+          <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+          <span class="font-mono text-code-sm text-tertiary">Backfill</span>
+        </div>
+      </div>
+      <a href="/" class="flex items-center gap-space-xs px-space-sm py-1.5 rounded bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface text-body-sm">
+        <span class="material-symbols-outlined text-[16px]">arrow_back</span><span>Dashboard</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="flex-1 flex flex-col">
+    <!-- Contexto -->
+    <div class="bg-surface-container-lowest px-margin py-space-sm">
+      <div class="flex items-center gap-space-xs font-mono text-code-sm text-outline">
+        <a href="/" class="hover:text-on-surface">Dashboard</a><span>/</span><span class="text-primary font-medium">Backfill de historial</span>
+      </div>
+      <h1 class="text-headline-md tracking-tight mt-space-xs">Backfill de historial de chat (.txt)</h1>
+      <p class="mt-space-xs text-body-sm text-on-surface-variant max-w-4xl">
+        Sube un chat exportado de WhatsApp (Exportar chat → Sin multimedia) para descargar los links de Instagram y X que se enviaron antes de que el bot estuviera escuchando. Entre descargas hay una pausa aleatoria para no quemar las cookies.
+      </p>
+    </div>
+
+    <div class="p-margin grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+      <!-- 01: archivo -->
+      <div class="lg:col-span-5 flex flex-col gap-space-md bg-surface-container-lowest p-space-md rounded">
+        <div class="flex items-center justify-between gap-space-sm">
+          <div class="flex items-center gap-space-xs">
+            <span class="font-mono text-code-sm px-1.5 py-0.5 rounded bg-primary-container text-on-primary-container font-medium">01</span>
+            <span class="text-headline-sm">Exportación de WhatsApp (.txt)</span>
+          </div>
+          <span class="font-mono text-code-sm text-outline">iOS y Android</span>
+        </div>
+
+        <div id="file-box" class="hidden bg-surface-container-low rounded p-space-sm flex-col gap-space-sm">
+          <div class="flex items-start justify-between gap-space-sm">
+            <div class="flex items-center gap-space-sm min-w-0">
+              <div class="w-9 h-9 rounded bg-surface-container-high flex items-center justify-center text-primary shrink-0">
+                <span class="material-symbols-outlined text-[20px]">description</span>
+              </div>
+              <div class="flex flex-col min-w-0">
+                <span class="font-mono text-code-md font-medium truncate" id="file-name"></span>
+                <span class="font-mono text-code-sm text-outline" id="file-meta"></span>
+              </div>
+            </div>
+            <button type="button" id="discard" class="text-outline hover:text-error p-1" title="Descartar archivo"><span class="material-symbols-outlined text-[16px]">close</span></button>
+          </div>
+          <div class="flex items-center gap-space-xs font-mono text-code-sm bg-surface-container-lowest px-space-sm py-1 rounded" id="format"></div>
+        </div>
+
+        <div id="analysis" class="hidden flex-col gap-space-xs">
+          <div class="flex items-center justify-between font-mono text-code-sm">
+            <span class="text-on-surface-variant uppercase tracking-wider">Links encontrados</span>
+            <span class="text-primary font-medium" id="a-total"></span>
+          </div>
+          <div class="grid grid-cols-3 gap-space-xs">
+            <div class="bg-surface-container-low p-space-sm rounded flex flex-col">
+              <span class="font-mono text-code-sm text-outline">Instagram</span>
+              <span class="text-headline-sm mt-0.5" id="a-ig"></span>
+              <span class="font-mono text-code-sm text-secondary mt-1">Posts y reels</span>
+            </div>
+            <div class="bg-surface-container-low p-space-sm rounded flex flex-col">
+              <span class="font-mono text-code-sm text-outline">X / Twitter</span>
+              <span class="text-headline-sm mt-0.5" id="a-x"></span>
+              <span class="font-mono text-code-sm text-secondary mt-1">Tweets</span>
+            </div>
+            <div class="bg-surface-container-low p-space-sm rounded flex flex-col">
+              <span class="font-mono text-code-sm text-outline">Ya descargados</span>
+              <span class="text-headline-sm text-outline mt-0.5" id="a-existing"></span>
+              <span class="font-mono text-code-sm text-outline mt-1">Se omiten</span>
+            </div>
+          </div>
+          <div class="w-full bg-surface-container-high h-2 rounded overflow-hidden flex mt-space-xs">
+            <div class="bg-primary h-full" id="bar-pending"></div>
+            <div class="bg-surface-variant h-full" id="bar-existing"></div>
+          </div>
+          <div class="flex items-center justify-between font-mono text-code-sm text-outline px-1">
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-primary inline-block"></span><span id="a-pending"></span></span>
+            <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-surface-variant inline-block"></span><span id="a-existing2"></span></span>
+          </div>
+        </div>
+
+        <label id="drop" class="relative border border-dashed border-outline-variant hover:border-primary/50 rounded p-space-lg flex flex-col items-center justify-center gap-space-sm cursor-pointer bg-surface-container-low/50 text-center">
+          <input type="file" id="chat" accept=".txt,text/plain" class="absolute inset-0 opacity-0 cursor-pointer" />
+          <span class="material-symbols-outlined text-outline text-[28px]" id="drop-icon">upload_file</span>
+          <span class="text-body-sm text-on-surface-variant" id="drop-text">Arrastra el .txt exportado o <span class="text-primary underline">explora</span></span>
+        </label>
+        <p id="file-error" class="hidden font-mono text-code-sm text-error"></p>
+      </div>
+
+      <!-- 02: parámetros -->
+      <div class="lg:col-span-7 flex flex-col justify-between gap-space-md bg-surface-container-lowest p-space-md rounded">
+        <div class="flex flex-col gap-space-md">
+          <div class="flex items-center gap-space-xs">
+            <span class="font-mono text-code-sm px-1.5 py-0.5 rounded bg-primary-container text-on-primary-container font-medium">02</span>
+            <span class="text-headline-sm">Parámetros</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+            <div class="flex flex-col gap-space-xs">
+              <label for="group" class="font-mono text-code-sm text-on-surface-variant">Grupo destino</label>
+              <div class="relative">
+                <select id="group" class="w-full bg-surface-container-low text-body-sm rounded px-space-sm py-1.5 pr-8 appearance-none focus:outline-none focus:bg-surface-container-high"></select>
+                <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[16px]">expand_more</span>
+              </div>
+              <span class="font-mono text-code-sm text-outline truncate" id="group-path"></span>
+            </div>
+            <div class="flex flex-col gap-space-xs">
+              <label for="count" class="font-mono text-code-sm text-on-surface-variant">Links nuevos a descargar (los más recientes)</label>
+              <div class="flex items-center gap-space-xs">
+                <div class="grid grid-cols-4 gap-1 flex-1" id="presets"></div>
+                <input id="count" type="number" min="1" value="50" class="w-16 bg-surface-container-low font-mono text-code-sm text-center py-1 rounded focus:outline-none focus:bg-surface-container-high" />
+              </div>
+              <span class="font-mono text-code-sm text-outline" id="count-hint">Sube un archivo para ver cuántos faltan.</span>
+            </div>
+          </div>
+
+          <div class="bg-surface-container-low p-space-sm rounded flex flex-col gap-space-xs">
+            <div class="flex items-center justify-between gap-space-sm">
+              <span class="font-mono text-code-sm font-medium">Pausa aleatoria entre descargas</span>
+              <span class="font-mono text-code-sm text-tertiary" id="wait-range"></span>
+            </div>
+            <p class="text-body-sm text-outline">
+              Después de cada descarga el bot espera un tiempo al azar antes de la siguiente, para que Instagram y X no bloqueen tus cookies. Los links ya descargados se omiten sin esperar.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-space-xs text-body-sm text-on-surface-variant">
+            <span class="material-symbols-outlined text-[16px] text-secondary">cloud_upload</span>
+            <span id="drive-note"></span>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-space-sm pt-space-sm">
+          <div class="flex items-center gap-space-xs text-outline font-mono text-code-sm">
+            <span class="material-symbols-outlined text-[16px] text-primary">security</span>
+            <span>Cada link queda guardado al terminar: detener no pierde lo descargado.</span>
+          </div>
+          <button type="button" id="start" disabled class="flex items-center gap-space-xs px-space-lg py-2 rounded bg-primary text-on-primary text-body-sm font-semibold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed">
+            <span class="material-symbols-outlined text-[18px]">play_arrow</span><span id="start-text">Iniciar backfill</span>
+          </button>
+        </div>
+        <p id="start-error" class="hidden font-mono text-code-sm text-error"></p>
+      </div>
+    </div>
+
+    <!-- Progreso -->
+    <div id="hud" class="hidden px-margin pb-space-sm">
+      <div class="bg-surface-container-lowest p-space-md rounded flex flex-wrap items-center justify-between gap-space-md">
+        <div class="flex flex-col gap-1 min-w-[260px] flex-1">
+          <div class="flex flex-wrap items-center gap-space-sm">
+            <span id="state-chip" class="flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-code-sm font-semibold"></span>
+            <span class="text-headline-sm">Backfill en <span id="hud-group"></span></span>
+            <span class="font-mono text-code-sm text-outline" id="hud-count"></span>
+          </div>
+          <div class="w-full bg-surface-container-high h-2 rounded overflow-hidden mt-1">
+            <div class="bg-primary h-full transition-all duration-500 rounded" id="hud-bar"></div>
+          </div>
+          <div class="flex flex-wrap justify-between gap-space-sm font-mono text-code-sm text-outline">
+            <span id="hud-start"></span><span id="hud-eta"></span>
+          </div>
+        </div>
+
+        <div id="countdown" class="hidden items-center gap-space-md bg-surface-container-low px-space-md py-space-sm rounded">
+          <div class="flex flex-col">
+            <span class="font-mono text-code-sm text-tertiary font-semibold uppercase tracking-wider flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">hourglass_top</span>Pausa entre descargas</span>
+            <span class="font-mono text-[13px] font-bold" id="cd-text"></span>
+            <span class="font-mono text-code-sm text-outline" id="cd-sub"></span>
+          </div>
+          <div class="relative w-10 h-10 flex items-center justify-center shrink-0">
+            <svg class="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+              <circle class="text-surface-container-highest" cx="20" cy="20" r="16" fill="transparent" stroke="currentColor" stroke-width="3"></circle>
+              <circle id="cd-ring" class="text-tertiary transition-all duration-1000 ease-linear" cx="20" cy="20" r="16" fill="transparent" stroke="currentColor" stroke-width="3" stroke-linecap="round" pathLength="100" stroke-dasharray="100"></circle>
+            </svg>
+            <span class="absolute font-mono text-code-sm font-semibold" id="cd-num"></span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-space-lg">
+          <div class="flex flex-col text-right"><span class="font-mono text-code-sm text-outline">Descargados</span><span class="font-mono text-code-md font-semibold text-primary" id="s-ok"></span></div>
+          <div class="flex flex-col text-right"><span class="font-mono text-code-sm text-outline">Espacio usado</span><span class="font-mono text-code-md font-semibold" id="s-bytes"></span></div>
+          <div class="flex flex-col text-right"><span class="font-mono text-code-sm text-outline">Errores</span><span class="font-mono text-code-md font-semibold" id="s-err"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cola -->
+    <div id="queue" class="hidden px-margin pb-space-lg">
+      <div class="bg-surface-container-lowest rounded overflow-hidden flex flex-col">
+        <div class="px-space-md py-space-sm bg-surface-container flex flex-wrap items-center justify-between gap-space-sm">
+          <div class="flex flex-wrap items-center gap-space-md">
+            <div class="flex items-center gap-space-xs font-mono text-code-md font-semibold">
+              <span class="material-symbols-outlined text-[16px] text-primary">format_list_bulleted</span>
+              <span id="queue-title"></span>
+              <span class="px-1.5 py-0.5 rounded bg-surface-container-high text-outline font-mono text-code-sm font-normal" id="queue-count"></span>
+            </div>
+            <div class="flex flex-wrap items-center gap-space-xs text-outline font-mono text-code-sm" id="filters"></div>
+          </div>
+          <div class="flex items-center gap-space-sm">
+            <div class="flex items-center gap-space-xs bg-surface-container-low px-space-sm py-1 rounded">
+              <span class="material-symbols-outlined text-[14px] text-outline">search</span>
+              <input id="search" type="search" placeholder="Filtrar por remitente o link…" class="bg-transparent font-mono text-code-sm focus:outline-none w-44 placeholder:text-outline" />
+            </div>
+            <button type="button" id="csv" class="flex items-center gap-1 text-outline hover:text-on-surface font-mono text-code-sm py-1 px-2 rounded bg-surface-container-low">
+              <span class="material-symbols-outlined text-[14px]">file_download</span><span>Exportar CSV</span>
+            </button>
+          </div>
+        </div>
+        <div class="w-full overflow-x-auto max-h-[60vh] overflow-y-auto">
+          <table class="w-full text-left border-collapse">
+            <thead class="sticky top-0">
+              <tr class="bg-surface-container-low text-outline font-mono text-code-sm">
+                <th class="py-2.5 px-space-md font-medium">Estado</th>
+                <th class="py-2.5 px-space-sm font-medium">Fecha chat</th>
+                <th class="py-2.5 px-space-sm font-medium">Remitente</th>
+                <th class="py-2.5 px-space-sm font-medium">Link</th>
+                <th class="py-2.5 px-space-sm font-medium">Tipo</th>
+                <th class="py-2.5 px-space-sm font-medium">Resultado</th>
+                <th class="py-2.5 px-space-md font-medium text-right">Tiempo</th>
+              </tr>
+            </thead>
+            <tbody id="rows" class="divide-y divide-surface-container-high font-mono text-code-sm"></tbody>
+          </table>
+        </div>
+        <div id="controls" class="hidden px-space-md py-space-sm bg-surface-container-low flex-wrap items-center justify-between gap-space-sm">
+          <div class="flex items-center gap-space-md">
+            <button type="button" id="pause" class="flex items-center gap-space-xs px-space-sm py-1 rounded bg-surface-container hover:bg-surface-container-high text-body-sm">
+              <span class="material-symbols-outlined text-[16px] text-tertiary" id="pause-icon">pause</span><span id="pause-text">Pausar</span>
+            </button>
+            <button type="button" id="stop" class="flex items-center gap-space-xs px-space-sm py-1 rounded bg-surface-container hover:bg-surface-container-high text-error text-body-sm">
+              <span class="material-symbols-outlined text-[16px]">stop</span><span>Detener</span>
+            </button>
+          </div>
+          <span class="font-mono text-code-sm text-outline">Las descargas también aparecen en la actividad del dashboard.</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-surface-container-lowest">
+    <div class="px-margin h-8 flex items-center justify-between font-mono text-code-sm text-outline">
+      <span id="footer-status"></span>
+      <span>WHATSAPP MEDIA BOT</span>
+    </div>
+  </footer>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let status = null;      // /api/status
+    let preview = null;     // análisis del archivo subido
+    let job = null;         // backfill en curso o último
+    let filter = "all";
+    let search = "";
+
+    function h(tag, cls, ...children) {
+      const el = document.createElement(tag);
+      if (cls) el.className = cls;
+      el.append(...children.filter((c) => c != null && c !== false));
+      return el;
+    }
+    const icon = (name, cls = "") => h("span", "material-symbols-outlined " + cls, name);
+    const num = (n) => n.toLocaleString("es");
+    function bytes(n) {
+      const units = ["B", "KB", "MB", "GB"];
+      let i = 0;
+      while (n >= 1024 && i < units.length - 1) (n /= 1024), i++;
+      return n.toFixed(i >= 2 ? 1 : 0) + " " + units[i];
+    }
+    const hhmmss = (iso) => new Date(iso).toLocaleTimeString("es", { hour12: false });
+    function duration(sec) {
+      sec = Math.max(0, Math.round(sec));
+      return sec < 60 ? sec + "s" : Math.floor(sec / 60) + " min " + (sec % 60) + "s";
+    }
+    const shortUrl = (url) => url.replace(/^https?:\/\/(www\.)?/, "");
+
+    async function getJSON(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(url + " → " + res.status);
+      return res.json();
+    }
+    async function post(url, body) {
+      const init = body instanceof FormData
+        ? { method: "POST", body }
+        : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+      const res = await fetch(url, init);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      return data;
+    }
+    function showError(id, message) {
+      $(id).textContent = message ?? "";
+      $(id).classList.toggle("hidden", !message);
+    }
+
+    // ---------- 01: archivo
+    $("chat").addEventListener("change", async () => {
+      const file = $("chat").files[0];
+      if (!file) return;
+      showError("file-error", null);
+      $("drop-text").textContent = "Analizando " + file.name + "…";
+      const form = new FormData();
+      form.append("chat", file);
+      try {
+        preview = await post("/api/backfill/analyze", form);
+        renderPreview();
+      } catch (e) {
+        showError("file-error", e.message);
+        resetFile();
+      }
+    });
+    $("discard").addEventListener("click", () => { preview = null; $("chat").value = ""; resetFile(); render(); });
+
+    function resetFile() {
+      $("drop-text").replaceChildren("Arrastra el .txt exportado o ", h("span", "text-primary underline", "explora"));
+    }
+
+    function renderPreview() {
+      const p = preview;
+      const withHeader = p.links.filter((l) => l.sender).length;
+      $("file-name").textContent = p.name;
+      $("file-meta").textContent = bytes(p.size) + " • " + num(p.lines) + " líneas";
+      $("format").replaceChildren(...(withHeader || !p.links.length
+        ? [icon("check_circle", "text-[14px] text-primary"), h("span", "text-primary", "Formato de WhatsApp reconocido: se muestra quién y cuándo envió cada link")]
+        : [icon("info", "text-[14px] text-tertiary"), h("span", "text-tertiary", "No reconocí el formato de los mensajes; se usan los links sin remitente ni fecha")]));
+      const ig = p.links.filter((l) => l.platform === "instagram").length;
+      const existing = p.links.filter((l) => l.existing).length;
+      const pending = p.links.length - existing;
+      $("a-total").textContent = num(p.links.length) + " links";
+      $("a-ig").textContent = num(ig);
+      $("a-x").textContent = num(p.links.length - ig);
+      $("a-existing").textContent = num(existing);
+      const pct = (n) => (p.links.length ? (n / p.links.length) * 100 : 0) + "%";
+      $("bar-pending").style.width = pct(pending);
+      $("bar-existing").style.width = pct(existing);
+      $("a-pending").textContent = num(pending) + " nuevos";
+      $("a-existing2").textContent = num(existing) + " ya descargados";
+      $("drop-icon").textContent = "swap_horiz";
+      $("drop-text").replaceChildren("Arrastra otro .txt o ", h("span", "text-primary underline", "explora"));
+      $("count").max = Math.max(pending, 1);
+      if (Number($("count").value) > pending) $("count").value = Math.max(pending, 1);
+      render();
+    }
+
+    // ---------- 02: parámetros
+    const pendingCount = () => (preview ? preview.links.filter((l) => !l.existing).length : 0);
+
+    function renderPresets() {
+      const pending = pendingCount();
+      const options = [25, 50, 100].filter((n) => !preview || n < pending).map((n) => [n, String(n)]);
+      if (preview) options.push([pending, num(pending) + " (todo)"]);
+      const current = Number($("count").value);
+      $("presets").className = "grid gap-1 flex-1 grid-cols-" + Math.max(options.length, 1);
+      $("presets").replaceChildren(...options.map(([n, label]) => {
+        const b = h("button", "py-1 text-center rounded font-mono text-code-sm transition-colors " + (n === current ? "bg-primary-container text-on-primary-container font-semibold" : "bg-surface-container-low hover:bg-surface-container text-outline hover:text-on-surface"), label);
+        b.type = "button";
+        b.onclick = () => { $("count").value = n; render(); };
+        return b;
+      }));
+      $("count-hint").textContent = preview
+        ? (pending ? "Se descargan los " + num(Math.min(current || 0, pending)) + " links nuevos más recientes del chat." : "Todos los links de este chat ya están descargados.")
+        : "Sube un archivo para ver cuántos faltan.";
+    }
+    $("count").addEventListener("input", () => render());
+    $("group").addEventListener("change", () => render());
+
+    $("start").addEventListener("click", async () => {
+      showError("start-error", null);
+      const form = new FormData();
+      form.append("chat", $("chat").files[0]);
+      form.append("group", $("group").value);
+      form.append("count", $("count").value);
+      $("start").disabled = true;
+      try {
+        await post("/api/backfill/start", form);
+        preview = null;
+        $("chat").value = "";
+        resetFile();
+        $("drop-icon").textContent = "upload_file";
+        await poll();
+      } catch (e) {
+        showError("start-error", e.message);
+        render();
+      }
+    });
+
+    // ---------- Progreso y cola
+    const running = () => job && (job.state === "running" || job.state === "paused");
+    const STATUS = {
+      queued: ["EN COLA", "bg-surface-container text-on-surface-variant", null],
+      downloading: ["DESCARGANDO", "bg-secondary-container/20 text-secondary font-semibold", "dot-ping"],
+      downloaded: ["ÉXITO", "bg-primary-container/20 text-primary font-semibold", "done"],
+      skipped: ["OMITIDO", "bg-surface-container text-outline", "content_copy"],
+      failed: ["ERROR", "bg-error-container/20 text-error font-semibold", "error"],
+    };
+    const FILTERS = [["all", "Todos"], ["downloading", "En curso"], ["downloaded", "Descargados"], ["skipped", "Omitidos"], ["failed", "Errores"]];
+
+    function linkType(item) {
+      if (item.status === "downloaded") {
+        const videos = /\.(mp4|webm|mov|m4v)$/i.test(item.firstFile ?? "");
+        if (item.files > 1) return "Carrusel (" + item.files + ")";
+        return videos ? "Video" : "Foto";
+      }
+      if (/instagram\.com\/reel/i.test(item.url)) return "Reel";
+      if (/instagram\.com\/stories/i.test(item.url)) return "Historia";
+      return item.platform === "instagram" || /instagram/i.test(item.url) ? "Post IG" : "Tweet";
+    }
+
+    function rowFor(item, index, isPreview) {
+      const waitingNext = !isPreview && job?.wait && item.status === "queued" && index === job.items.findIndex((i) => i.status === "queued");
+      const [label, cls, ic] = waitingNext ? ["EN ESPERA", "bg-tertiary-container/20 text-tertiary font-semibold", "schedule"] : STATUS[item.status ?? "queued"];
+      const badge = h("span", "inline-flex items-center gap-1.5 px-2 py-0.5 rounded whitespace-nowrap " + cls,
+        ic === "dot-ping" ? h("span", "w-1.5 h-1.5 rounded-full bg-secondary animate-ping") : ic ? icon(ic, "text-[12px]") : h("span", "w-1.5 h-1.5 rounded-full bg-outline"),
+        label);
+      const a = h("a", "hover:underline " + (item.status === "failed" ? "text-error" : item.status === "downloading" ? "text-secondary" : "text-on-surface-variant"), shortUrl(item.url));
+      a.href = /^https?:\/\//.test(item.url) ? item.url : "#";
+      a.target = "_blank";
+      a.rel = "noreferrer";
+      a.title = item.url;
+
+      let result, time;
+      switch (item.status) {
+        case "downloading": result = h("span", "", "Descargando…"); time = "En curso"; break;
+        case "downloaded":
+          result = h("span", "", h("span", "", (item.firstFile ?? "").replace(/^.*\/downloads\//, "")), h("span", "text-outline", " (" + bytes(item.bytes) + ")"));
+          time = duration(item.tookMs / 1000) + (item.waitedSec ? " · pausa " + item.waitedSec + "s" : ""); break;
+        case "skipped": result = h("span", "text-outline", "Ya estaba descargado"); time = "—"; break;
+        case "failed": result = h("span", "text-error break-words", item.error); time = duration(item.tookMs / 1000) + (item.waitedSec ? " · pausa " + item.waitedSec + "s" : ""); break;
+        default:
+          result = h("span", "text-outline", isPreview ? "Se descargará" : waitingNext ? "Siguiente tras la pausa" : job?.state === "stopped" ? "No procesado (detenido)" : "En cola");
+          time = waitingNext ? job.wait.remaining + "s restantes" : "Pendiente";
+      }
+      return h("tr", "hover:bg-surface-container-low/40 " + (item.status === "downloading" ? "bg-surface-container-low/70" : item.status === "skipped" ? "opacity-75" : ""),
+        h("td", "py-2.5 px-space-md", badge),
+        h("td", "py-2.5 px-space-sm text-outline whitespace-nowrap", [item.date, item.time].filter(Boolean).join(" ") || "—"),
+        h("td", "py-2.5 px-space-sm whitespace-nowrap", item.sender ?? "—"),
+        h("td", "py-2.5 px-space-sm max-w-[240px] truncate", a),
+        h("td", "py-2.5 px-space-sm whitespace-nowrap", h("span", "px-1.5 py-0.5 rounded bg-surface-container text-outline", linkType(item))),
+        h("td", "py-2.5 px-space-sm min-w-[200px]", result),
+        h("td", "py-2.5 px-space-md text-right whitespace-nowrap " + (waitingNext ? "text-tertiary font-semibold" : "text-outline"), time));
+    }
+
+    // Lo que muestra la tabla: el backfill (si hay) o la vista previa del archivo subido
+    function tableItems() {
+      if (running() || (job && !preview)) return { items: job.items, isPreview: false };
+      if (!preview) return null;
+      const selection = preview.links.filter((l) => !l.existing).slice(-Number($("count").value || 0));
+      return { items: selection.map((l) => ({ ...l, status: "queued" })), isPreview: true };
+    }
+
+    function renderQueue() {
+      const table = tableItems();
+      $("queue").classList.toggle("hidden", !table);
+      if (!table) return;
+      const { items, isPreview } = table;
+      $("queue-title").textContent = isPreview ? "Vista previa de la cola" : "Cola del backfill";
+      $("queue-count").textContent = num(items.length) + " links";
+      const counts = Object.fromEntries(FILTERS.map(([k]) => [k, k === "all" ? items.length : items.filter((i) => i.status === k).length]));
+      $("filters").replaceChildren(...FILTERS.filter(([k]) => !isPreview || k === "all").flatMap(([k, label], i) => {
+        const b = h("button", "hover:text-on-surface " + (filter === k ? "text-on-surface font-medium" : k === "failed" ? "text-error" : ""), label + " (" + num(counts[k]) + ")");
+        b.type = "button";
+        b.onclick = () => { filter = k; renderQueue(); };
+        return i ? [h("span", "", "•"), b] : [b];
+      }));
+      const q = search.toLowerCase();
+      const visible = items.map((item, i) => [item, i]).filter(([item]) =>
+        (isPreview || filter === "all" || item.status === filter) &&
+        (!q || item.url.toLowerCase().includes(q) || (item.sender ?? "").toLowerCase().includes(q)));
+      $("rows").replaceChildren(...(visible.length
+        ? visible.map(([item, i]) => rowFor(item, i, isPreview))
+        : [h("tr", "", h("td", "py-space-lg text-center text-outline", "Nada que mostrar con este filtro."))]));
+      if (!visible.length) $("rows").firstChild.firstChild.colSpan = 7;
+      $("controls").classList.toggle("hidden", !running());
+      $("controls").classList.toggle("flex", running());
+    }
+
+    function renderHud() {
+      $("hud").classList.toggle("hidden", !job);
+      if (!job) return;
+      const items = job.items;
+      const done = items.filter((i) => ["downloaded", "skipped", "failed"].includes(i.status));
+      const ok = items.filter((i) => i.status === "downloaded");
+      const failed = items.filter((i) => i.status === "failed");
+      const pct = Math.round((done.length / items.length) * 100);
+      const chips = {
+        running: ["EN PROCESO", "bg-primary-container text-on-primary-container", true],
+        paused: ["PAUSADO", "bg-tertiary-container text-on-tertiary-container", false],
+        stopped: ["DETENIDO", "bg-error-container text-on-error-container", false],
+        done: ["TERMINADO", "bg-surface-container-high text-primary", false],
+      };
+      const [label, cls, pulse] = chips[job.state];
+      $("state-chip").className = "flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-code-sm font-semibold " + cls;
+      $("state-chip").replaceChildren(pulse ? h("span", "w-1.5 h-1.5 rounded-full bg-on-primary-container animate-pulse") : null, label);
+      $("hud-group").textContent = job.group;
+      $("hud-count").textContent = done.length + " de " + items.length + " procesados (" + pct + "%)";
+      $("hud-bar").style.width = pct + "%";
+      $("hud-start").textContent = "Inicio: " + hhmmss(job.startedAt) + (job.finishedAt ? " · Fin: " + hhmmss(job.finishedAt) : "");
+      const remaining = items.length - done.length;
+      const elapsed = ((job.finishedAt ? new Date(job.finishedAt) : Date.now()) - new Date(job.startedAt)) / 1000;
+      $("hud-eta").textContent = running() && done.length
+        ? remaining + " restantes • ETA: ~" + duration((elapsed / done.length) * remaining)
+        : running() ? remaining + " restantes" : "Duración: " + duration(elapsed);
+
+      const w = job.wait;
+      $("countdown").classList.toggle("hidden", !w);
+      $("countdown").classList.toggle("flex", !!w);
+      if (w) {
+        $("cd-text").textContent = job.state === "paused" ? "En pausa (" + w.remaining + "s)" : "Próxima descarga en " + w.remaining + "s";
+        $("cd-sub").textContent = "Pausa al azar de " + w.total + "s";
+        $("cd-num").textContent = w.remaining;
+        $("cd-ring").setAttribute("stroke-dashoffset", String(100 - (w.remaining / w.total) * 100));
+      }
+      $("s-ok").textContent = num(ok.length);
+      $("s-bytes").textContent = bytes(ok.reduce((n, i) => n + i.bytes, 0));
+      $("s-err").textContent = num(failed.length);
+      $("s-err").className = "font-mono text-code-md font-semibold " + (failed.length ? "text-error" : "");
+      $("pause-icon").textContent = job.state === "paused" ? "play_arrow" : "pause";
+      $("pause-text").textContent = job.state === "paused" ? "Reanudar" : "Pausar";
+    }
+
+    function render() {
+      $("file-box").classList.toggle("hidden", !preview);
+      $("file-box").classList.toggle("flex", !!preview);
+      $("analysis").classList.toggle("hidden", !preview);
+      $("analysis").classList.toggle("flex", !!preview);
+      renderPresets();
+      const pending = pendingCount();
+      const count = Math.min(Number($("count").value) || 0, pending);
+      $("start").disabled = !preview || !pending || count < 1 || running();
+      $("start-text").textContent = running() ? "Ya hay un backfill en curso" : count ? "Iniciar backfill (" + num(count) + " links)" : "Iniciar backfill";
+      renderHud();
+      renderQueue();
+    }
+
+    $("pause").addEventListener("click", () => post("/api/backfill/control", { action: job.state === "paused" ? "resume" : "pause" }).then(poll));
+    $("stop").addEventListener("click", () => {
+      if (confirm("¿Detener el backfill? Lo ya descargado se conserva.")) post("/api/backfill/control", { action: "stop" }).then(poll);
+    });
+    $("search").addEventListener("input", (e) => { search = e.target.value.trim(); renderQueue(); });
+    $("csv").addEventListener("click", () => {
+      const table = tableItems();
+      if (!table) return;
+      const cell = (v) => '"' + String(v ?? "").replaceAll('"', '""') + '"';
+      const lines = [["estado", "fecha", "hora", "remitente", "link", "tipo", "archivos", "bytes", "error"].join(",")]
+        .concat(table.items.map((i) => [i.status, i.date, i.time, i.sender, i.url, linkType(i), i.files ?? 0, i.bytes ?? 0, i.error].map(cell).join(",")));
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+      a.download = "backfill-" + new Date().toISOString().slice(0, 10) + ".csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    async function poll() {
+      try {
+        const [s, b] = await Promise.all([getJSON("/api/status"), getJSON("/api/backfill")]);
+        if (s.phase === "setup") return location.replace("/setup");
+        if (!status) {
+          $("group").replaceChildren(...s.settings.monitoredGroups.map((g) => { const o = h("option", "", g); o.value = g; return o; }));
+        }
+        status = s;
+        job = b.job;
+        $("wait-range").textContent = b.wait.min + "s – " + b.wait.max + "s al azar";
+        $("drive-note").textContent = b.gdriveEnabled ? "Google Drive está activo: cada archivo también se sube a Drive." : "Google Drive está apagado: los archivos solo se guardan en disco.";
+        $("group-path").textContent = s.settings.downloadsDir + "/" + $("group").value + "/{plataforma}/";
+        $("footer-status").textContent = running() ? "BACKFILL: " + (job.state === "paused" ? "PAUSADO" : "EN PROCESO") : "BACKFILL: INACTIVO";
+        render();
+      } catch {
+        $("footer-status").textContent = "BOT SIN RESPUESTA";
+      }
+    }
+
+    $("host").textContent = location.host;
+    // Cada segundo mientras corre (cuenta regresiva), cada 5 s si no
+    (async function loop() {
+      await poll();
+      setTimeout(loop, running() ? 1000 : 5000);
+    })();
+  </script>
+</body>
+</html>
