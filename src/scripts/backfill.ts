@@ -4,6 +4,7 @@ import { config } from "../config.js";
 import { initDatabase } from "../storage/db.js";
 import { extractSupportedUrls } from "../downloader/parser.js";
 import { handleUrl } from "../whatsapp/handler.js";
+import { WAIT_SECONDS } from "../web/backfill.js";
 
 const [chatPath, groupName, flag, lastArg] = process.argv.slice(2);
 const last = flag === "--last" ? Number(lastArg) : 50;
@@ -36,8 +37,7 @@ for (const [i, url] of urls.entries()) {
     console.error(`${prefix} ❌ ${url}`, error);
   }
   if (i === urls.length - 1) break;
-  // ponytail: pausa fija de 20-60s para no quemar las cookies; súbela si Instagram pide checkpoint
-  const seconds = 20 + Math.floor(Math.random() * 41);
+  const seconds = WAIT_SECONDS.min + Math.floor(Math.random() * (WAIT_SECONDS.max - WAIT_SECONDS.min + 1));
   console.log(`⏳ Esperando ${seconds}s...`);
   await Bun.sleep(seconds * 1000);
 }

@@ -345,7 +345,7 @@
     function renderDrive(st) {
       const toggle = $("drive-toggle");
       toggle.disabled = !st.gdriveConfigured;
-      toggle.checked = st.gdriveConfigured;
+      toggle.checked = false; // apagado por defecto: el usuario lo activa si quiere subir a Drive
       $("drive-row").classList.toggle("cursor-not-allowed", !st.gdriveConfigured);
       $("drive-hint").textContent = st.gdriveConfigured
         ? "Usa las credenciales OAuth de data/credentials/"

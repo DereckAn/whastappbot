@@ -3,7 +3,8 @@ import { statSync } from "fs";
 import { handleUrl } from "../whatsapp/handler.js";
 import type { ChatLink } from "../whatsapp/chat-export.js";
 
-export const WAIT_SECONDS = { min: 20, max: 60 };
+// ponytail: pausa corta al azar (gallery-dl ya espera entre requests de Instagram); súbela si Instagram pide checkpoint
+export const WAIT_SECONDS = { min: 2, max: 7 };
 
 export interface BackfillItem extends ChatLink {
   status: "queued" | "downloading" | "downloaded" | "skipped" | "failed";
