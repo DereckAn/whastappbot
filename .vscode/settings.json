@@ -1,0 +1,6 @@
+{
+  // Usa TypeScript 7 (servidor nativo en Go) en vez del TypeScript que trae VS Code
+  "js/ts.experimental.useTsgo": true,
+  // Ruta al TypeScript 7 del proyecto (la extensión solo busca sola en node_modules/@typescript/native-preview)
+  "js/ts.tsdk.path": "node_modules/typescript"
+}
