@@ -2,6 +2,8 @@
   "compilerOptions": {
     // Environment setup & latest features
     "lib": ["ESNext"],
+    // TypeScript 6 (el que trae VS Code) ya no carga @types/* solo: hay que nombrarlos
+    "types": ["bun"],
     "target": "ESNext",
     "module": "ESNext",
     "moduleDetection": "force",
@@ -12,10 +14,8 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
 
-    // Output configuration (needed for Docker build)
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "declaration": true,
+    // Bun ejecuta los .ts directo (también en Docker): tsc solo revisa tipos
+    "noEmit": true,
 
     // Best practices
     "strict": true,

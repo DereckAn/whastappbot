@@ -53,11 +53,7 @@ async function findFolder(name: string, parentId: string): Promise<string | null
     spaces: 'drive',
   });
 
-  if (response.data.files && response.data.files.length > 0) {
-    return response.data.files[0].id!;
-  }
-
-  return null;
+  return response.data.files?.[0]?.id ?? null;
 }
 
 // Obtener o crear carpeta
