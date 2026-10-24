@@ -91,12 +91,3 @@ export function listDownloads(group: string | null, search: string | null): Down
 `)
     .all(group, search) as DownloadRow[];
 }
-
-export function groupStats(): { group_name: string; files: number; last: string }[] {
-  return getDb()
-    .prepare(`
-  SELECT group_name, COUNT(*) AS files, MAX(downloaded_at) AS last FROM downloads
-  WHERE url LIKE '%#%' GROUP BY group_name
-`)
-    .all() as { group_name: string; files: number; last: string }[];
-}

@@ -387,7 +387,6 @@
       ["photo", "Solo fotos", "image", ""],
       ["carousel", "Carruseles", "view_carousel", ""],
       ["video", "Videos", "movie", ""],
-      ["missing", "Faltantes en disco", "sync_problem", "text-error"],
     ];
 
     function renderStats(st) {
@@ -425,7 +424,6 @@
 
     function mediaCard(r) {
       const compact = view.density === "compact";
-      if (r.size === null) return missingCard(r, compact);
       const src = "/media?path=" + encodeURIComponent(r.file_path);
       const isVideo = r.kind === "video";
       const media = h(isVideo ? "video" : "img", "w-full h-full object-cover" + (isVideo ? "" : " group-hover:scale-105 transition-transform duration-300"));
@@ -468,26 +466,6 @@
         compact ? null : h("div", "p-space-sm flex items-center justify-between gap-space-sm font-mono text-code-sm",
           h("span", "truncate font-medium", fileName(r.file_path)),
           h("span", "text-outline shrink-0", user ? "@" + user : r.group_name)));
-    }
-
-    function missingCard(r, compact) {
-      if (compact) {
-        return h("article", "aspect-square rounded bg-surface-container-lowest/60 flex flex-col items-center justify-center gap-1 text-error",
-          icon("broken_image", "text-[24px]"), h("span", "font-mono text-[10px]", "faltante"));
-      }
-      return h("article", "flex flex-col rounded bg-surface-container-low overflow-hidden",
-        h("div", "aspect-[4/3] w-full p-space-md flex flex-col justify-between gap-space-xs bg-surface-container-lowest/60",
-          h("span", "self-start px-space-xs py-0.5 rounded bg-error-container text-on-error-container font-mono text-code-sm flex items-center gap-1", icon("broken_image", "text-[13px]"), "No encontrado en disco"),
-          h("div", "my-auto text-center flex flex-col items-center gap-space-xs",
-            icon("search_off", "text-error text-[28px]"),
-            h("p", "font-mono text-code-sm text-outline max-w-[240px] break-all leading-relaxed", r.file_path),
-            h("span", "text-body-sm text-on-surface-variant", "El archivo fue movido o borrado del disco.")),
-          h("div", "flex items-center justify-between gap-space-sm",
-            h("span", "text-[11px] font-mono text-outline", "Descargado " + ago(r.downloaded_at)),
-            chip(r.post_url, "bg-surface-container-high hover:bg-surface-bright", "open_in_new", "Post original"))),
-        h("div", "p-space-sm flex items-center justify-between gap-space-sm font-mono text-code-sm",
-          h("span", "truncate text-error font-medium", fileName(r.file_path)),
-          h("span", "text-outline shrink-0", r.group_name)));
     }
 
     async function loadPage() {

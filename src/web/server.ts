@@ -1,7 +1,7 @@
 import path from "path";
 import { existsSync, statSync, statfsSync } from "fs";
 import { config } from "../config.js";
-import { groupStats, isUrlDownloaded, listDownloads, type DownloadRow } from "../storage/db.js";
+import { isUrlDownloaded, listDownloads, type DownloadRow } from "../storage/db.js";
 import { identifyPlatform } from "../downloader/parser.js";
 import { parseChatExport } from "../whatsapp/chat-export.js";
 import { WAIT_SECONDS, backfillJob, controlBackfill, startBackfill } from "./backfill.js";
@@ -28,34 +28,33 @@ const fileSize = (file: string) => {
   }
 };
 
-// Archivos de la galería con tipo y tamaño en disco
+// Archivos de la galería con tipo y tamaño; los que ya no están en disco se ignoran
 // ponytail: filtra en memoria y hace stat de cada archivo; pasar a SQL si la biblioteca llega a ~100k
-function mediaRows(params: URLSearchParams) {
-  return listDownloads(params.get("group"), params.get("q")?.trim() || null).map((r: DownloadRow) => ({
-    ...r,
-    kind: VIDEO_EXT.test(r.file_path) ? ("video" as const) : ("photo" as const),
-    size: fileSize(r.file_path),
-  }));
+function mediaRows(group: string | null, search: string | null = null) {
+  return listDownloads(group, search).flatMap((r: DownloadRow) => {
+    const size = fileSize(r.file_path);
+    if (size === null) return [];
+    return [{ ...r, size, kind: VIDEO_EXT.test(r.file_path) ? ("video" as const) : ("photo" as const) }];
+  });
 }
+const rowsFor = (params: URLSearchParams) => mediaRows(params.get("group"), params.get("q")?.trim() || null);
 
 const TYPE_FILTERS: Record<string, (r: ReturnType<typeof mediaRows>[number]) => boolean> = {
   all: () => true,
   photo: (r) => r.kind === "photo",
   video: (r) => r.kind === "video",
   carousel: (r) => r.parts > 1,
-  missing: (r) => r.size === null,
 };
 
 function stats(params: URLSearchParams) {
-  const rows = mediaRows(params);
+  const rows = rowsFor(params);
   const count = (type: string) => rows.filter(TYPE_FILTERS[type]!).length;
-  const bytes = (kind: string) => rows.reduce((n, r) => n + (r.kind === kind ? r.size ?? 0 : 0), 0);
+  const bytes = (kind: string) => rows.reduce((n, r) => n + (r.kind === kind ? r.size : 0), 0);
   return {
     total: rows.length,
     photo: count("photo"),
     video: count("video"),
     carousel: count("carousel"),
-    missing: count("missing"),
     bytes: { photo: bytes("photo"), video: bytes("video") },
   };
 }
@@ -73,7 +72,12 @@ function diskFree(): number | null {
 const modifiedAt = (file: string) => (existsSync(file) ? statSync(file).mtime.toISOString() : null);
 
 function status() {
-  const stats = new Map(groupStats().map((s) => [s.group_name, s]));
+  // Conteo y última actividad por grupo, solo con archivos que siguen en disco (filas más nuevas primero)
+  const stats = new Map<string, { files: number; last: string }>();
+  for (const r of mediaRows(null)) {
+    const s = stats.get(r.group_name);
+    s ? s.files++ : stats.set(r.group_name, { files: 1, last: r.downloaded_at });
+  }
   return {
     phase: botState.phase,
     connection: botState.connection,
@@ -170,7 +174,7 @@ export function startWebServer(): string {
         const params = new URL(req.url).searchParams;
         const limit = Math.min(Number(params.get("limit")) || 60, 500);
         const offset = Math.max(Number(params.get("offset")) || 0, 0);
-        let rows = mediaRows(params).filter(TYPE_FILTERS[params.get("type") ?? "all"] ?? TYPE_FILTERS.all!);
+        let rows = rowsFor(params).filter(TYPE_FILTERS[params.get("type") ?? "all"] ?? TYPE_FILTERS.all!);
         if (params.get("order") === "oldest") rows = rows.reverse();
         return Response.json({ total: rows.length, items: rows.slice(offset, offset + limit) });
       },
