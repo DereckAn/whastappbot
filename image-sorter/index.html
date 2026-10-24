@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image Sorter</title>
+<!-- fonts are optional: offline it falls back to system fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-app: #0c0e11;
+    --bg-surface: #111317;
+    --bg-surface-low: #1a1c1f;
+    --bg-surface-card: #202328;
+    --bg-surface-elevated: #282a2d;
+    --border-subtle: #242930;
+    --border-bold: #333842;
+    --text-main: #e2e2e6;
+    --text-muted: #8b949e;
+    --text-dim: #555d6b;
+    --primary: #10b981;
+    --primary-dim: #059669;
+    --primary-bright: #34d399;
+    --primary-border: rgba(16, 185, 129, 0.4);
+    --secondary-border: rgba(6, 182, 212, 0.4);
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --font-ui: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --sidebar-width: 340px;
+    --topbar-height: 48px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg-app); color: var(--text-main); font-family: var(--font-ui);
+    height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+    user-select: none; -webkit-font-smoothing: antialiased;
+  }
+  input { user-select: text; }
+
+  /* TOP BAR */
+  header.top-bar {
+    height: var(--topbar-height); background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; padding: 0 14px; gap: 12px; z-index: 30; flex-shrink: 0;
+  }
+  .brand-group { display: flex; align-items: center; gap: 10px; padding-right: 12px; border-right: 1px solid var(--border-subtle); }
+  .brand-badge { display: flex; align-items: center; gap: 7px; font: 600 11px var(--font-mono); letter-spacing: 0.04em; color: #e2e8f0; text-transform: uppercase; }
+  .brand-badge .icon { color: var(--primary); font-size: 15px; }
+  .instance-pill {
+    display: flex; align-items: center; gap: 5px; padding: 2px 7px;
+    background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 4px;
+    font: 10px var(--font-mono); color: var(--primary-bright);
+  }
+  .instance-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px var(--primary); animation: pulseDot 2s infinite ease-in-out; }
+  @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .folder-input-group {
+    display: flex; align-items: center; flex: 1; max-width: 680px;
+    background: var(--bg-surface-low); border: 1px solid var(--border-subtle); border-radius: 5px; overflow: hidden; transition: all 0.15s ease;
+  }
+  .folder-input-group:focus-within { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary-border); }
+  .folder-input-group input { flex: 1; background: transparent; border: none; outline: none; padding: 6px 10px; color: var(--text-main); font: 11.5px var(--font-mono); }
+  .folder-input-group input::placeholder { color: var(--text-dim); }
+
+  button {
+    font-family: var(--font-ui); cursor: pointer; border: none; outline: none;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    font-size: 11.5px; font-weight: 500; border-radius: 4px; transition: all 0.15s ease;
+  }
+  button:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+  .btn-util { background: var(--bg-surface-card); color: var(--text-main); border: 1px solid var(--border-bold); padding: 5px 10px; height: 28px; font: 11px var(--font-mono); }
+  .btn-util:hover { background: var(--bg-surface-elevated); border-color: #4b5563; color: #fff; }
+  .btn-browse { border: none; border-right: 1px solid var(--border-subtle); border-radius: 0; }
+  .btn-open { background: rgba(16, 185, 129, 0.15); color: var(--primary-bright); border-left: 1px solid var(--border-subtle); padding: 5px 12px; height: 28px; font: 600 11.5px var(--font-mono); border-radius: 0; }
+  .btn-open:hover { background: rgba(16, 185, 129, 0.25); color: #fff; }
+
+  .top-stats { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+  .progress-capsule {
+    display: flex; align-items: center; gap: 8px; background: var(--bg-surface-low); padding: 3px 10px;
+    border-radius: 4px; border: 1px solid var(--border-subtle); font: 11px var(--font-mono); color: var(--text-muted);
+  }
+  .mini-progress-bar { width: 64px; height: 4px; background: #252a32; border-radius: 2px; overflow: hidden; }
+  .mini-progress-fill { height: 100%; width: 0%; background: var(--primary); box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); transition: width 0.2s ease; }
+  .util-group { display: flex; align-items: center; gap: 6px; padding-left: 8px; border-left: 1px solid var(--border-subtle); }
+  .util-btn { width: 28px; height: 28px; background: transparent; color: var(--text-muted); border: 1px solid transparent; font-size: 14px; }
+  .util-btn:hover { background: var(--bg-surface-card); border-color: var(--border-subtle); color: var(--text-main); }
+
+  /* WORKSPACE */
+  .workspace { display: flex; flex: 1; min-height: 0; position: relative; overflow: hidden; }
+  .center-stage {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; overflow: hidden;
+    background:
+      radial-gradient(circle at center, rgba(16, 185, 129, 0.03) 0%, transparent 70%),
+      radial-gradient(#1e2229 1px, transparent 1px) 0 0 / 24px 24px,
+      #0c0e11;
+  }
+  .viewport-container { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; position: relative; padding: 24px; overflow: hidden; }
+  .viewport-container img {
+    max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.07); box-shadow: 0 16px 48px rgba(0,0,0,0.75), 0 0 0 1px rgba(0,0,0,0.5);
+  }
+
+  /* HUD */
+  .hud-badge-container { position: absolute; top: 18px; left: 20px; display: flex; gap: 8px; flex-wrap: wrap; max-width: 70%; z-index: 10; pointer-events: none; }
+  .hud-tag {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 4px;
+    font: 600 11.5px var(--font-mono); backdrop-filter: blur(8px); box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: rgba(6, 182, 212, 0.16); border: 1px solid var(--secondary-border); color: #bae6fd;
+  }
+  .hud-tag .tag-key { padding: 1px 5px; border-radius: 3px; font-size: 10.5px; font-weight: 700; background: #0891b2; color: #fff; }
+  .hud-tag::after { content: "COPY"; font-size: 9px; background: rgba(6, 182, 212, 0.28); padding: 1px 4px; border-radius: 2px; color: #7dd3fc; letter-spacing: 0.5px; }
+  .hud-tag.priority { background: rgba(16, 185, 129, 0.18); border-color: var(--primary-border); color: #a7f3d0; }
+  .hud-tag.priority .tag-key { background: var(--primary-dim); }
+  .hud-tag.priority::after { content: "MOVE"; background: rgba(16, 185, 129, 0.3); color: #6ee7b7; }
+  @keyframes popIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+  .hud-feedback {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.92);
+    padding: 10px 18px; border-radius: 6px; background: rgba(17, 19, 23, 0.95); backdrop-filter: blur(12px);
+    border: 1px solid var(--border-bold); box-shadow: 0 16px 36px rgba(0,0,0,0.8);
+    display: flex; align-items: center; gap: 10px; font: 600 13px var(--font-mono);
+    pointer-events: none; opacity: 0; transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1); z-index: 25;
+  }
+  .hud-feedback.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .hud-feedback.tagged { border-color: var(--primary); color: var(--primary-bright); box-shadow: 0 0 24px rgba(16, 185, 129, 0.25); }
+  .hud-feedback.untagged { border-color: #f87171; color: #fca5a5; }
+
+  /* STAGE FOOTER */
+  .stage-footer {
+    height: 44px; flex-shrink: 0; background: rgba(17, 19, 23, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border-subtle);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; z-index: 10;
+  }
+  .file-meta { display: flex; align-items: center; gap: 10px; font-family: var(--font-mono); min-width: 0; }
+  .index-counter { font-weight: 700; color: #fff; background: var(--bg-surface-low); padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border-bold); font-size: 11px; letter-spacing: 0.05em; white-space: nowrap; }
+  .file-name { color: var(--text-main); font-weight: 500; font-size: 12px; max-width: 420px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag-arrow { color: var(--text-dim); font-size: 11px; }
+  .tag-preview-list { display: flex; align-items: center; gap: 6px; }
+  .tag-preview-pill { padding: 2px 7px; border-radius: 3px; font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+  .tag-preview-pill.primary { background: rgba(16, 185, 129, 0.15); color: var(--primary-bright); border: 1px solid rgba(16, 185, 129, 0.3); }
+  .tag-preview-pill.secondary { background: rgba(6, 182, 212, 0.15); color: #7dd3fc; border: 1px solid rgba(6, 182, 212, 0.3); }
+  .untagged-label { font-size: 11px; color: var(--text-dim); }
+  .nav-controls { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .nav-btn { background: var(--bg-surface-low); color: var(--text-muted); border: 1px solid var(--border-subtle); padding: 4px 10px; font: 11px var(--font-mono); }
+  .nav-btn:hover { background: var(--bg-surface-card); border-color: var(--border-bold); color: var(--text-main); }
+  .nav-btn-highlight { background: rgba(16, 185, 129, 0.1); color: var(--primary-bright); border-color: rgba(16, 185, 129, 0.3); }
+  .nav-btn-highlight:hover { background: rgba(16, 185, 129, 0.2); color: #fff; }
+
+  /* SIDEBAR */
+  aside.sidebar { width: var(--sidebar-width); background: var(--bg-surface); border-left: 1px solid var(--border-subtle); display: flex; flex-direction: column; z-index: 20; flex-shrink: 0; min-height: 0; }
+  .sidebar-section { padding: 12px 14px; border-bottom: 1px solid var(--border-subtle); }
+  .sidebar-section.grow { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .section-title { display: flex; align-items: center; gap: 6px; font: 700 10.5px var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+  .section-count { font: 10.5px var(--font-mono); color: var(--text-dim); }
+  .step-badge { width: 15px; height: 15px; border-radius: 3px; background: var(--bg-surface-card); border: 1px solid var(--border-bold); display: flex; align-items: center; justify-content: center; font-size: 9.5px; color: var(--primary); }
+
+  .folder-list { display: flex; flex-direction: column; gap: 5px; overflow-y: auto; min-height: 0; padding-right: 2px; }
+  .folder-row { display: flex; align-items: center; gap: 8px; background: var(--bg-surface-low); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 4px 7px; transition: all 0.15s ease; cursor: pointer; }
+  .folder-row:hover { border-color: var(--border-bold); background: var(--bg-surface-card); }
+  .folder-row.tagged { background: rgba(16, 185, 129, 0.08); border-color: var(--primary-border); box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.05); }
+  .folder-key-input {
+    width: 24px; height: 22px; text-align: center; background: var(--bg-app); border: 1px solid var(--border-bold); border-radius: 3px;
+    font: 700 11px var(--font-mono); color: var(--primary-bright); flex-shrink: 0; outline: none; text-transform: lowercase;
+  }
+  .folder-key-input:focus { border-color: var(--primary); }
+  .folder-row.tagged .folder-key-input { background: var(--primary); color: #002113; border-color: var(--primary-bright); box-shadow: 0 0 8px rgba(16, 185, 129, 0.35); }
+  .folder-name-input { flex: 1; min-width: 0; background: transparent; border: 1px solid transparent; outline: none; font: 11.5px var(--font-mono); color: var(--text-main); padding: 2px 5px; border-radius: 3px; }
+  .folder-name-input:focus { background: var(--bg-app); border-color: var(--primary); }
+  .folder-row.tagged .folder-name-input { color: #e6fffa; font-weight: 600; }
+  .delete-row-btn { background: transparent; color: var(--text-dim); font-size: 14px; width: 20px; height: 20px; border-radius: 3px; line-height: 1; }
+  .delete-row-btn:hover { color: var(--danger); background: rgba(239, 68, 68, 0.12); }
+  .btn-add-folder { width: 100%; margin-top: 8px; background: transparent; border: 1px dashed var(--border-bold); color: var(--text-muted); padding: 6px; font: 500 11px var(--font-mono); flex-shrink: 0; }
+  .btn-add-folder:hover { border-color: var(--primary); color: var(--primary-bright); background: rgba(16, 185, 129, 0.05); }
+
+  .options-group { display: flex; flex-direction: column; gap: 8px; }
+  .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-muted); cursor: pointer; }
+  .checkbox-label:hover { color: var(--text-main); }
+  .checkbox-label input { accent-color: var(--primary); width: 14px; height: 14px; cursor: pointer; }
+
+  .apply-block { padding: 14px; background: var(--bg-surface-low); border-top: 1px solid var(--border-subtle); }
+  .btn-apply {
+    width: 100%; height: 38px; background: linear-gradient(180deg, #10b981 0%, #059669 100%); color: #fff;
+    font: 600 12.5px var(--font-mono); letter-spacing: 0.02em; border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  .btn-apply:hover:not(:disabled) { background: linear-gradient(180deg, #34d399 0%, #059669 100%); box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35); }
+  .btn-apply:disabled { opacity: 0.35; background: var(--bg-surface-elevated); border-color: var(--border-subtle); color: var(--text-dim); box-shadow: none; cursor: not-allowed; }
+
+  .report-box {
+    margin-top: 8px; padding: 8px; max-height: 160px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; user-select: text;
+    background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 4px;
+    font: 11px var(--font-mono); color: #a7f3d0;
+  }
+  .report-box.warn { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3); color: #fcd34d; }
+
+  .cheatsheet { padding: 10px 14px 12px; background: var(--bg-surface-low); border-top: 1px solid var(--border-subtle); font: 10.5px var(--font-mono); }
+  .cheatsheet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 8px; margin-top: 6px; }
+  .shortcut-item { display: flex; align-items: center; gap: 6px; color: var(--text-muted); }
+  .kbd { background: var(--bg-app); border: 1px solid var(--border-bold); padding: 1px 4px; border-radius: 3px; color: #cbd5e1; font-size: 9.5px; min-width: 18px; text-align: center; }
+
+  /* MODAL */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(8, 10, 13, 0.78); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .modal-backdrop.open { display: flex; }
+  .modal-card { width: 460px; max-width: calc(100vw - 32px); background: var(--bg-surface-card); border: 1px solid var(--border-bold); border-radius: 8px; padding: 20px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85); }
+  .modal-title { font: 700 14px var(--font-mono); margin-bottom: 8px; color: #fff; display: flex; align-items: center; gap: 8px; }
+  .modal-title .icon { color: var(--primary); }
+  .modal-body { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 18px; }
+  .modal-stats { background: var(--bg-surface-low); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; margin: 12px 0; display: flex; justify-content: space-around; text-align: center; }
+  .modal-stat-val { font: 700 18px var(--font-mono); color: var(--primary-bright); }
+  .modal-stat-val.dim { color: var(--text-dim); }
+  .modal-stat-label { font: 10px var(--font-mono); color: var(--text-dim); text-transform: uppercase; margin-top: 2px; }
+  .modal-note { font: 11px var(--font-mono); color: var(--text-dim); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-actions button { height: 32px; padding: 6px 14px; }
+  .modal-actions .btn-apply { width: auto; }
+
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-dim); gap: 10px; text-align: center; }
+  .empty-state-icon { font-size: 34px; opacity: 0.6; }
+  .empty-title { font: 600 14px var(--font-mono); color: var(--text-main); }
+  .empty-sub { font-size: 12px; color: var(--text-muted); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header class="top-bar">
+  <div class="brand-group">
+    <div class="brand-badge"><span class="icon">▦</span><span>Image Sorter</span></div>
+    <div class="instance-pill"><span class="instance-dot"></span><span id="host"></span></div>
+  </div>
+  <div class="folder-input-group">
+    <button class="btn-util btn-browse" id="btn-browse">Browse…</button>
+    <input id="dir-input" placeholder="/path/to/images" spellcheck="false" type="text">
+    <button class="btn-open" id="btn-open">Open Folder</button>
+  </div>
+  <div class="top-stats" id="top-stats" hidden>
+    <div class="progress-capsule">
+      <span id="tagged-summary" style="color: var(--primary-bright);">0 tagged (0%)</span>
+      <div class="mini-progress-bar"><div class="mini-progress-fill" id="progress-fill"></div></div>
+      <span id="total-summary" style="color: #fff;">0 / 0</span>
+    </div>
+  </div>
+  <div class="util-group">
+    <button class="util-btn" id="btn-help" title="Help">?</button>
+  </div>
+</header>
+
+<div class="workspace">
+  <main class="center-stage">
+    <div class="hud-badge-container" id="hud-tags"></div>
+    <div class="hud-feedback" id="hud-feedback"><span id="hud-feedback-icon"></span><span id="hud-feedback-text"></span></div>
+    <div class="viewport-container">
+      <div class="empty-state" id="empty-state">
+        <span class="empty-state-icon">▢</span>
+        <div class="empty-title" id="empty-title">No folder open</div>
+        <div class="empty-sub" id="empty-sub">Click Browse, paste a path above, or drag a folder into the terminal</div>
+      </div>
+      <img alt="" id="current-image" hidden>
+    </div>
+    <footer class="stage-footer">
+      <div class="file-meta">
+        <span class="index-counter" id="index-counter">-- / --</span>
+        <span class="file-name" id="file-name"></span>
+        <span class="tag-arrow" id="tag-arrow" hidden>→</span>
+        <div class="tag-preview-list" id="tag-preview-list"></div>
+      </div>
+      <div class="nav-controls">
+        <button class="nav-btn" id="btn-prev" title="Previous (←)">← Prev</button>
+        <button class="nav-btn" id="btn-next" title="Next (→ or Space)">Next →</button>
+        <button class="nav-btn nav-btn-highlight" id="btn-next-untagged" title="Next untagged (U)">Next Untagged (U)</button>
+      </div>
+    </footer>
+  </main>
+
+  <aside class="sidebar">
+    <div class="sidebar-section grow">
+      <div class="section-header">
+        <span class="section-title"><span class="step-badge">1</span>Key → Folder</span>
+        <span class="section-count" id="tag-count-indicator">0 keys</span>
+      </div>
+      <div class="folder-list" id="folder-list"></div>
+      <button class="btn-add-folder" id="btn-add-folder">+ Add folder (next free key)</button>
+    </div>
+    <div class="sidebar-section">
+      <div class="section-header"><span class="section-title"><span class="step-badge">2</span>Sorting Behavior</span></div>
+      <div class="options-group">
+        <label class="checkbox-label"><input id="chk-auto-advance" type="checkbox"><span>Auto-advance after key press</span></label>
+        <label class="checkbox-label"><input id="chk-move-captions" type="checkbox"><span>Move .txt captions with images</span></label>
+      </div>
+    </div>
+    <div class="apply-block">
+      <button class="btn-apply" disabled id="btn-apply">Apply Changes (0)</button>
+      <div class="report-box" id="report-box" hidden></div>
+    </div>
+    <div class="cheatsheet">
+      <span class="section-title" style="font-size: 10px;">Shortcuts</span>
+      <div class="cheatsheet-grid">
+        <div class="shortcut-item"><span class="kbd">Key</span><span>Toggle folder</span></div>
+        <div class="shortcut-item"><span class="kbd">Space / →</span><span>Next</span></div>
+        <div class="shortcut-item"><span class="kbd">←</span><span>Previous</span></div>
+        <div class="shortcut-item"><span class="kbd">Z</span><span>Undo tag</span></div>
+        <div class="shortcut-item"><span class="kbd">U</span><span>Next untagged</span></div>
+        <div class="shortcut-item"><span class="kbd">Click row</span><span>Toggle folder</span></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="modal-backdrop" id="apply-modal">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-title" id="modal-title"><span class="icon">⇢</span><span>Confirm File Organization</span></div>
+    <div class="modal-body">
+      Each image is moved into its first folder (MOVE) and copied into any others (COPY).
+      <div class="modal-stats">
+        <div><div class="modal-stat-val" id="modal-tagged-count">0</div><div class="modal-stat-label">Tagged files</div></div>
+        <div><div class="modal-stat-val" id="modal-target-folders">0</div><div class="modal-stat-label">Folders</div></div>
+        <div><div class="modal-stat-val dim" id="modal-untagged-count">0</div><div class="modal-stat-label">Untouched</div></div>
+      </div>
+      <p class="modal-note">Images whose name already exists in a target folder are skipped, never overwritten.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-util" id="btn-modal-cancel">Cancel (Esc)</button>
+      <button class="btn-apply" id="btn-modal-confirm">Confirm &amp; Move Files</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const RESERVED = 'zu ';           // undo, next untagged, next
+const FREE_KEYS = '1234567890abcdefghijklmnopqrstvwxy';
+let images = [], st = null, history = [], feedbackTimer = null;
+
+$('host').textContent = location.host;
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+function save() { if (st) api('/api/state', st).catch(e => alert(e.message)); }
+const taggedCount = () => Object.values(st?.assign || {}).filter(a => a.length).length;
+const keyFor = folder => Object.keys(st.keys).find(k => st.keys[k] === folder) || '•';
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function load(res) {
+  $('dir-input').value = res.dir;
+  images = res.images || [];
+  st = res.state;
+  st.index = Math.min(st.index || 0, Math.max(images.length - 1, 0));
+  history = [];
+  $('chk-auto-advance').checked = st.autoAdvance;
+  $('chk-move-captions').checked = st.captions;
+  renderKeys();
+}
+
+function render() {
+  const name = st && images[st.index];
+  const assigned = (name && st.assign[name]) || [];
+
+  // stage
+  $('empty-state').hidden = !!name;
+  $('current-image').hidden = !name;
+  if (!name) {
+    $('empty-title').textContent = st ? 'No images in this folder' : 'No folder open';
+    $('empty-sub').textContent = st ? 'Supported: jpg, jpeg, png, webp, gif, bmp, avif' : 'Click Browse, paste a path above, or drag a folder into the terminal';
+  } else {
+    $('current-image').src = '/img?name=' + encodeURIComponent(name);
+    if (images[st.index + 1]) new Image().src = '/img?name=' + encodeURIComponent(images[st.index + 1]);
+  }
+  $('index-counter').textContent = name ? `${st.index + 1} / ${images.length}` : '-- / --';
+  $('file-name').textContent = name || '';
+
+  // tag badges (HUD + footer)
+  const hud = $('hud-tags'), list = $('tag-preview-list');
+  hud.replaceChildren();
+  list.replaceChildren();
+  assigned.forEach((f, i) => {
+    const b = el('div', 'hud-tag' + (i === 0 ? ' priority' : ''));
+    b.append(el('span', 'tag-key', keyFor(f)), el('span', '', f));
+    hud.append(b);
+    list.append(el('span', 'tag-preview-pill ' + (i === 0 ? 'primary' : 'secondary'), f));
+  });
+  $('tag-arrow').hidden = !assigned.length;
+  if (name && !assigned.length) list.append(el('span', 'untagged-label', '(untagged)'));
+
+  // sidebar highlight
+  document.querySelectorAll('.folder-row').forEach(r => r.classList.toggle('tagged', assigned.includes(r.dataset.folder)));
+
+  // stats
+  const n = taggedCount(), pct = images.length ? Math.round(n / images.length * 100) : 0;
+  $('top-stats').hidden = !images.length;
+  $('progress-fill').style.width = pct + '%';
+  $('tagged-summary').textContent = `${n} tagged (${pct}%)`;
+  $('total-summary').textContent = name ? `${st.index + 1} / ${images.length}` : '';
+  $('btn-apply').textContent = `Apply Changes (${n})`;
+  $('btn-apply').disabled = !n;
+}
+
+function renderKeys() {
+  const box = $('folder-list');
+  box.replaceChildren();
+  const entries = Object.entries(st.keys);
+  $('tag-count-indicator').textContent = `${entries.length} key${entries.length === 1 ? '' : 's'}`;
+  for (const [k, f] of entries) {
+    const row = el('div', 'folder-row');
+    row.dataset.folder = f;
+    const ki = el('input', 'folder-key-input'); ki.maxLength = 1; ki.value = k; ki.title = 'Shortcut key';
+    const fi = el('input', 'folder-name-input'); fi.value = f; fi.title = 'Folder name or absolute path'; fi.spellcheck = false;
+    const del = el('button', 'delete-row-btn', '×'); del.title = 'Remove';
+    ki.onchange = () => {
+      const v = ki.value.toLowerCase();
+      if (v && !st.keys[v] && !RESERVED.includes(v)) { delete st.keys[k]; st.keys[v] = f; save(); }
+      renderKeys();
+    };
+    fi.onchange = () => {
+      const v = fi.value.trim();
+      if (v && v !== f) {
+        st.keys[k] = v;
+        for (const img in st.assign) st.assign[img] = st.assign[img].map(x => x === f ? v : x);
+        save();
+      }
+      renderKeys();
+    };
+    del.onclick = () => { delete st.keys[k]; renderKeys(); save(); };
+    row.onclick = e => { if (e.target === row) toggle(f, k); };
+    row.append(ki, fi, del);
+    box.append(row);
+  }
+  render();
+}
+
+function go(i) { if (!images.length) return; st.index = Math.max(0, Math.min(images.length - 1, i)); render(); save(); }
+
+function nextUntagged() {
+  const i = images.findIndex((n, j) => j > st.index && !st.assign[n]?.length);
+  if (i >= 0) go(i);
+}
+
+function flash(kind, text) {
+  clearTimeout(feedbackTimer);
+  $('hud-feedback').className = 'hud-feedback show ' + kind;
+  $('hud-feedback-icon').textContent = kind === 'tagged' ? '✓' : '✕';
+  $('hud-feedback-text').textContent = text;
+  feedbackTimer = setTimeout(() => $('hud-feedback').classList.remove('show'), 650);
+}
+
+function toggle(folder, key) {
+  const name = images[st.index];
+  if (!name) return;
+  const before = st.assign[name] || [];
+  history.push({ name, before, index: st.index });
+  const added = !before.includes(folder);
+  const after = added ? [...before, folder] : before.filter(f => f !== folder);
+  if (after.length) st.assign[name] = after; else delete st.assign[name];
+  flash(added ? 'tagged' : 'untagged', `${added ? 'Tagged' : 'Removed'} ${folder} [${key}]`);
+  if (st.autoAdvance && added && st.index < images.length - 1) st.index++;
+  render(); save();
+}
+
+function undo() {
+  const h = history.pop();
+  if (!h) return;
+  if (h.before.length) st.assign[h.name] = h.before; else delete st.assign[h.name];
+  st.index = h.index;
+  flash('untagged', 'Undone');
+  render(); save();
+}
+
+function openApply() {
+  const n = taggedCount();
+  if (!n) return;
+  $('modal-tagged-count').textContent = n;
+  $('modal-target-folders').textContent = new Set(Object.values(st.assign).flat()).size;
+  $('modal-untagged-count').textContent = images.length - n;
+  $('apply-modal').classList.add('open');
+  $('btn-modal-confirm').focus();
+}
+const closeApply = () => $('apply-modal').classList.remove('open');
+
+async function apply() {
+  closeApply();
+  $('btn-apply').disabled = true;
+  $('btn-apply').textContent = 'Applying…';
+  try {
+    const res = await api('/api/apply', {});
+    load(res);
+    const r = res.report, box = $('report-box');
+    box.textContent = `✓ Applied ${r.applied}.` + (r.skipped.length ? `\n⚠ Skipped ${r.skipped.length}:\n` + r.skipped.join('\n') : '');
+    box.classList.toggle('warn', r.skipped.length > 0);
+    box.hidden = false;
+  } catch (e) {
+    alert('Apply failed: ' + e.message);
+    render();
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if ($('apply-modal').classList.contains('open')) {
+    if (e.key === 'Escape') closeApply();
+    return;
+  }
+  if (!st || e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'arrowright' || k === ' ') go(st.index + 1);
+  else if (k === 'arrowleft') go(st.index - 1);
+  else if (k === 'z') undo();
+  else if (k === 'u') nextUntagged();
+  else if (st.keys[k]) toggle(st.keys[k], k);
+  else return;
+  e.preventDefault();
+});
+
+const openDir = dir => api('/api/open', { Dir: dir }).then(load).catch(e => alert(e.message));
+$('btn-browse').onclick = async () => { const { dir } = await api('/api/pick'); if (dir) openDir(dir); };
+$('btn-open').onclick = () => openDir($('dir-input').value.trim());
+$('dir-input').onkeydown = e => { if (e.key === 'Enter') openDir($('dir-input').value.trim()); };
+$('btn-prev').onclick = () => st && go(st.index - 1);
+$('btn-next').onclick = () => st && go(st.index + 1);
+$('btn-next-untagged').onclick = () => st && nextUntagged();
+$('btn-add-folder').onclick = () => {
+  if (!st) return alert('Open a folder first.');
+  const free = FREE_KEYS.split('').find(c => !st.keys[c]);
+  if (!free) return alert('No free keys left.');
+  const name = prompt('Folder name (or absolute path):');
+  if (name?.trim()) { st.keys[free] = name.trim(); renderKeys(); save(); }
+};
+$('chk-auto-advance').onchange = e => { if (st) { st.autoAdvance = e.target.checked; save(); } };
+$('chk-move-captions').onchange = e => { if (st) { st.captions = e.target.checked; save(); } };
+$('btn-apply').onclick = openApply;
+$('btn-modal-cancel').onclick = closeApply;
+$('btn-modal-confirm').onclick = apply;
+$('apply-modal').onclick = e => { if (e.target === $('apply-modal')) closeApply(); };
+$('btn-help').onclick = () => alert('Image Sorter\n\n• Press a folder key (or click its row) to toggle that folder on the current image\n• First folder = MOVE, others = COPY\n• Space / →: next   ←: previous\n• Z: undo   U: next untagged\n• Nothing touches the disk until you Apply');
+
+// No folder yet: open the native picker, and meanwhile watch for a folder
+// dragged into the terminal.
+async function start() {
+  const res = await api('/api/start');
+  if (res.dir) return load(res);
+  const poll = setInterval(async () => {
+    if (st) return clearInterval(poll);
+    const res = await api('/api/start').catch(() => ({}));
+    if (res.dir && !st) { clearInterval(poll); load(res); }
+  }, 1000);
+  $('btn-browse').click();
+}
+
+render();
+start().catch(e => alert(e.message));
+</script>
+</body>
+</html>
